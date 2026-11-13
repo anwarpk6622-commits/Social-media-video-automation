@@ -1,0 +1,11 @@
+{
+  "name": "urdu-video-automation",
+  "private": true,
+  "description": "Helper for rendering Urdu Nastaliq text with Chromium (used by the Python pipeline).",
+  "scripts": {
+    "setup-browser": "playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "1.63.0"
+  }
+}

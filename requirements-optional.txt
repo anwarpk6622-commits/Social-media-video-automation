@@ -1,0 +1,3 @@
+# OPTIONAL — sirf "python run.py script ... --use-api" (PAID Claude API mode) ke liye.
+# FREE mode ke liye is ki zaroorat nahi.
+anthropic>=2.8.0,<3

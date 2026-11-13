@@ -1,0 +1,42 @@
+{
+  "channel": {
+    "name": "My Urdu Channel",
+    "language": "ur",
+    "audience": "Pakistani aur Urdu bolne wale aam log",
+    "tone": "dostana, saaf aur professional",
+    "call_to_action": "Video pasand aaye to like karein, channel subscribe karein aur bell icon dabayein."
+  },
+
+  "script": {
+    "default_minutes": 3,
+    "words_per_minute": 130,
+    "model": "claude-opus-5-5",
+    "effort": "medium",
+    "max_output_tokens": 16000,
+    "price_per_million_input_usd": 4.0,
+    "price_per_million_output_usd": 20.0
+  },
+
+  "audio": {
+    "sample_rate": 48000,
+    "target_lufs": -14.0,
+    "true_peak_db": -1.5,
+    "loudness_range": 11.0,
+    "max_limiting_db": 3.0,
+    "highpass_hz": 80,
+    "noise_reduction": "medium",
+    "eq": true,
+    "deesser": true,
+    "compressor": true,
+    "trim_silence": false,
+    "silence_threshold_db": -45,
+    "max_silence_seconds": 0.8,
+    "keep_silence_seconds": 0.35
+  },
+
+  "fonts": {
+    "urdu_regular": "assets/fonts/NotoNastaliqUrdu-Regular.ttf",
+    "urdu_bold": "assets/fonts/NotoNastaliqUrdu-Bold.ttf",
+    "urdu_family": "Noto Nastaliq Urdu"
+  }
+}

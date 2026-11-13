@@ -1,0 +1,8 @@
+# Phase 1 + 2 ka core system sirf Python ki apni (built-in) libraries istemal karta hai.
+# Koi pip package zaroori NAHI.
+#
+# Bahar ke free tools jo chahiye:
+#   - FFmpeg   (awaaz ki processing)      https://ffmpeg.org/download.html
+#   - Node.js + Playwright (Urdu Nastaliq text rendering)  — dekhein package.json
+#
+# Optional PAID API script mode ke liye:  pip install -r requirements-optional.txt
