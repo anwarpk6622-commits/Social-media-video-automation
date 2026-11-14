@@ -16,6 +16,10 @@
  *     "style": { "fontSize": 80, "color": "#fff", "highlight": "#FFD60A", "outline": "#000",
  *                "box": false, "bottom": 600, "maxWidth": 900 },
  *     "items": [ { "out": "f0001.png", "words": ["آج", "ہم"], "highlight": 0 }, ... ] }
+ *
+ * Mode 3 — designed cards (title, end card): items with "html" (+ optional spec "css").
+ *   The HTML comes only from the project's own templates (video_edit.py), with user
+ *   text escaped there.
  */
 const fs = require("fs");
 const path = require("path");
@@ -53,7 +57,9 @@ p{margin:0;max-width:${st.maxWidth}px;font-family:"UrduNastaliq",sans-serif;font
   ${st.box ? `background:rgba(0,0,0,.55);padding:0 ${Math.round(st.fontSize * 0.35)}px;border-radius:${Math.round(st.fontSize * 0.2)}px;
   -webkit-box-decoration-break:clone;box-decoration-break:clone;` : ""}}
 .hl{color:${st.highlight}}
-</style></head><body><div id="stage"></div></body></html>`;
+#free{position:absolute;inset:0;font-family:"UrduNastaliq",sans-serif;direction:rtl}
+${spec.css || ""}
+</style></head><body><div id="stage"></div><div id="free"></div></body></html>`;
 
   const browser = await chromium.launch();
   try {
@@ -67,6 +73,17 @@ p{margin:0;max-width:${st.maxWidth}px;font-family:"UrduNastaliq",sans-serif;font
 
     const items = spec.items || [{ out: spec.out, lines: spec.lines || [] }];
     for (const it of items) {
+      if (it.html !== undefined) {
+        // Mode 3 — designed card (title / end card): trusted HTML from our own templates
+        await page.evaluate((h) => {
+          document.getElementById("stage").innerHTML = "";
+          document.getElementById("free").innerHTML = h;
+        }, it.html);
+        await page.evaluate(() => document.fonts.ready);
+        await page.screenshot({ path: it.out, omitBackground: transparent });
+        continue;
+      }
+      await page.evaluate(() => { document.getElementById("free").innerHTML = ""; });
       let inner;
       if (it.words) {
         inner = "<p>" + it.words.map((w, i) => (i === it.highlight ? `<span class="hl">${esc(w)}</span>` : esc(w))).join(" ") + "</p>";

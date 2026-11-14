@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import json
+import subprocess
 from pathlib import Path
 
 from .config import load_settings
@@ -79,6 +80,60 @@ def _summary(m: dict) -> dict:
     }
 
 
+def measure_delay_ms(reference: Path, processed: Path, *, windows: int = 3) -> float | None:
+    """How many ms `processed` lags behind `reference` (cross-correlation, 8 kHz).
+
+    Returns None if it cannot be measured reliably (numpy missing, silence)."""
+    try:
+        import numpy as np
+    except ImportError:
+        return None
+
+    def load(p: Path):
+        raw = subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-i", str(p), "-map", "0:a:0",
+                              "-ac", "1", "-ar", "8000", "-f", "f32le", "-"], capture_output=True).stdout
+        return np.frombuffer(raw, np.float32)
+
+    a, b = load(reference), load(processed)
+    n = min(len(a), len(b))
+    max_lag, win = 800, 8000 * 4  # ±100 ms, 4-second windows
+    if n < win + 2 * max_lag:
+        return None
+    lags = []
+    for k in range(windows):
+        s = max_lag + (n - win - 2 * max_lag) * (k + 1) // (windows + 1)
+        x = a[s:s + win] - a[s:s + win].mean()
+        if float(np.std(x)) < 1e-4:
+            continue
+        scores = [float(np.dot(x, b[s + L:s + L + win])) for L in range(-max_lag, max_lag + 1)]
+        best = int(np.argmax(scores)) - max_lag
+        y = b[s + best:s + best + win]
+        corr = scores[best + max_lag] / (float(np.std(x)) * float(np.std(y)) * win + 1e-9)
+        if corr > 0.5:
+            lags.append(best / 8.0)
+    if not lags:
+        return None
+    lags.sort()
+    return lags[len(lags) // 2]
+
+
+def _fix_delay(src: Path, master: Path, rate: int) -> float:
+    """Shift `master` earlier by its measured delay; same length. Returns ms fixed."""
+    lag = measure_delay_ms(src, master)
+    if lag is None or abs(lag) < 1.0:
+        return 0.0
+    tmp = master.with_name(master.stem + ".sync.wav")
+    if lag > 0:   # processed is late → cut the start, pad the end
+        af = f"atrim=start={lag / 1000:.4f},asetpts=PTS-STARTPTS,apad=pad_dur={lag / 1000:.4f}"
+    else:         # processed is early → delay it, trim the end
+        af = f"adelay={-lag:.2f}:all=1"
+    dur = audio_info(master)["duration_seconds"]
+    run_ffmpeg(["-y", "-i", str(master), "-af", af, "-t", f"{dur:.4f}", "-ar", str(rate), "-ac", "1",
+                "-c:a", "pcm_s24le", str(tmp)])
+    tmp.replace(master)
+    return round(lag, 1)
+
+
 def process_voice(project: Project, recording: str | None = None, overrides: dict | None = None) -> dict:
     require_ffmpeg()
     opts = {**load_settings()["audio"], **{k: v for k, v in (overrides or {}).items() if v is not None}}
@@ -113,7 +168,8 @@ def process_voice(project: Project, recording: str | None = None, overrides: dic
     #    at `max_limiting_db`, and the report says honestly if the target was missed.
     target = float(opts["target_lufs"])
     limit_db = float(opts["true_peak_db"]) - 0.5
-    limiter = f"alimiter=limit={10 ** (limit_db / 20):.4f}:attack=5:release=60:level=0"
+    # latency=1: the limiter compensates its own look-ahead delay (keeps lip-sync)
+    limiter = f"alimiter=limit={10 ** (limit_db / 20):.4f}:attack=5:release=60:level=0:latency=1"
     base_gain = target - float(_measure(src, chain, opts)["input_i"])
     max_extra = float(opts.get("max_limiting_db", 3.0))
     gain = base_gain
@@ -140,6 +196,9 @@ def process_voice(project: Project, recording: str | None = None, overrides: dic
         "-y", "-i", str(src), "-map", "0:a:0", "-af", af,
         "-ar", str(opts["sample_rate"]), "-ac", "1", "-c:a", "pcm_s24le", str(master),
     ])
+    # 4b) Lip-sync: some filters (noise reduction) delay the sound by a few ms.
+    #     Measure the delay against the original and remove it exactly.
+    sync_fix_ms = _fix_delay(src, master, int(opts["sample_rate"]))
     # small AAC copy for quick listening on phone / browser
     run_ffmpeg(["-y", "-i", str(master), "-c:a", "aac", "-b:a", "192k", str(preview)])
 
@@ -172,6 +231,7 @@ def process_voice(project: Project, recording: str | None = None, overrides: dic
         "clean": {"file": master.name, "preview_file": preview.name, **info_after, **_summary(after)},
         "settings": opts,
         "gain_db": round(gain, 2),
+        "sync_fix_ms": sync_fix_ms,
         "extra_limiting_db": round(gain - base_gain, 2),
         "loudness_note": loudness_note,
         "filter_chain": chain,

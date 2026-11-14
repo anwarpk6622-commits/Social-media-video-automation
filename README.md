@@ -31,7 +31,7 @@
 | Aap ki asal awaaz ki safai (shor, volume, clarity) | 2 | ✅ Tayyar |
 | Preview page (sun kar / dekh kar check) | 2 | ✅ Tayyar |
 | Urdu subtitles (.srt + video par Nastaliq, bolta lafz highlight) | 3 | ✅ Tayyar |
-| Video editing (transitions, color, music) | 4 | ⏳ Agla |
+| Video editing (trim, stabilization, color grade, transition, title, 9:16 + 16:9) | 4 | ✅ Tayyar (music baad mein) |
 | YouTube / TikTok / Facebook versions | 5 | ⏳ |
 | Official publishing (aap ki approval ke saath) | 6 | ⏳ |
 
@@ -209,6 +209,26 @@ aur **bolta hua lafz peela** highlight. Preview page (Qadam 6) par dono videos c
 Aap ki tabdeeliyan **mehfooz** hain: agar baad mein `subtitles` dobara chalayein to system inkar karega taake
 edit na mitey. Zabardasti naya banana ho to `--force` (purani file ka backup khud ban jaata hai).
 
+### Qadam 10 — Apni video ki cinematic editing (Phase 4)
+```bash
+python run.py new "Dubai Video"
+python run.py add-recording dubai-video "VID-20261114.mp4"        # mehfooz read-only copy
+python run.py edit-init dubai-video --title "دبئی نیشنل ڈے کی تیاری" --tag "برج العرب، دبئی" \
+       --trim-start 2.0 --soft-range 29.7-35.5                      # plan → edit.json
+python run.py audio dubai-video --noise medium                     # aawaz saaf (lip-sync khud theek)
+python run.py subtitles dubai-video                                # Urdu subtitles
+python run.py edit-preview dubai-video                             # PREVIEW (9:16 + 16:9)
+python run.py export dubai-video                                   # sirf aap ke "yes" ke baad
+```
+- `--trim-start`: shuru se kitne second kaatne hain · `--soft-range`: jahan chehra ho, wahan halka color grade
+- **edit.json** ek aam text file hai — title, kaat, stabilization, grade, end card sab yahan badal sakte hain.
+- Kya hota hai: scene cuts khud dhoonde jaate hain → har clip **stabilize** (adaptive zoom, kinare kabhi
+  khaali nahi) → **cinematic warm grade** (chehre par halka) → 1080p upscale + sharpen → cut par
+  **zoom-punch transition** → Nastaliq **title**, **subtitles**, **end card** → 9:16 aur 16:9 (dono taraf blur).
+- `export` tab hi chalta hai jab preview bana ho aur us ke baad `edit.json` na badla ho.
+  Final files: `output/final_9x16.mp4`, `output/final_16x9.mp4`. **Kuch bhi upload / publish nahi hota.**
+- ⚠️ WhatsApp wali video kam quality (480p) ki hoti hai. Behtar natije ke liye phone se **asal file** bhejein.
+
 ---
 
 ## 5. Achhi recording ke tips
@@ -237,6 +257,9 @@ edit na mitey. Zabardasti naya banana ho to `--force` (purani file ka backup khu
 | `python run.py audio <project> [options]` | Awaaz saaf karein |
 | `python run.py subtitles <project> [--model medium] [--no-script]` | Urdu subtitles (.srt) |
 | `python run.py subtitle-video <project> [--background clip.mp4]` | Subtitles wali test video (16:9 + 9:16) |
+| `python run.py edit-init <project> --title "..." [--trim-start 2]` | Editing plan (edit.json) |
+| `python run.py edit-preview <project>` | Editing PREVIEW (9:16 + 16:9) |
+| `python run.py export <project>` | Final files — preview approve karne ke baad |
 | `python run.py preview <project> [--serve]` | Preview page |
 | `python run.py font-test` | Urdu Nastaliq render test |
 | `python -m unittest discover -s tests -v` | Automated tests (developer check) |

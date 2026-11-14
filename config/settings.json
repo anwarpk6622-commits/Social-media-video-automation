@@ -36,7 +36,7 @@
 
   "subtitles": {
     "model": "medium",
-    "use_script_hint": true,
+    "use_script_hint": false,
     "min_script_match": 0.2,
     "highlight_words": true,
     "colors": { "text": "#FFFFFF", "highlight": "#FFD60A", "outline": "#000000" },

@@ -1,0 +1,59 @@
+{
+  "recording": "d944367e-VID-20261114-WA0004.mp4",
+  "trim": {
+    "start": 2.002,
+    "end": null
+  },
+  "cuts": [
+    18.684
+  ],
+  "stabilize": {
+    "enabled": true,
+    "shakiness": 6,
+    "smoothing": 20,
+    "zoom_percent": 1,
+    "zoom_speed": 0.2
+  },
+  "grade": {
+    "look": "cinematic_warm",
+    "soft_ranges": [
+      [
+        29.7,
+        35.5
+      ]
+    ]
+  },
+  "transition": {
+    "type": "zoom_punch",
+    "strength": 0.16,
+    "duration": 0.45
+  },
+  "title": {
+    "text": "دبئی نیشنل ڈے کی تیاری",
+    "tag": "برج العرب، دبئی",
+    "start": 0.3,
+    "end": 4.2
+  },
+  "end_card": {
+    "enabled": true,
+    "line1": "ویڈیو پسند آئے تو",
+    "line2": "لائک اور سبسکرائب کریں",
+    "seconds": 3.0
+  },
+  "subtitles": {
+    "enabled": true
+  },
+  "audio": {
+    "clean": true,
+    "noise_reduction": "medium",
+    "highpass_hz": 100,
+    "music": null
+  },
+  "formats": [
+    "vertical",
+    "landscape"
+  ],
+  "fade_out_seconds": 0.6,
+  "_source_duration": 39.92,
+  "_note": "Sab waqt (seconds) ASAL video ke hisaab se hain. Badal kar 'edit-preview' dobara chalayein."
+}

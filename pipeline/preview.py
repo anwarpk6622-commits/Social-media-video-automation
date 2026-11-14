@@ -221,6 +221,33 @@ def build_preview(project: Project) -> Path:
 save karein, phir <code>python run.py subtitle-video {e(project.path.name)}</code> chalayein. Aap ki tabdeeliyan mehfooz rehti hain.</p>
 </section>""")
 
+    # --- editing preview (Phase 4)
+    ep = project.path / "edit_preview.json"
+    if ep.exists():
+        log = json.loads(ep.read_text(encoding="utf-8"))
+        plan = json.loads((project.path / "edit.json").read_text(encoding="utf-8"))
+        vids = ""
+        for name, label in (("edit_preview_9x16.mp4", "9:16 — TikTok / Reels / Shorts"),
+                            ("edit_preview_16x9.mp4", "16:9 — YouTube / Facebook")):
+            if (pv / name).exists():
+                vids += (f'<div><b>{label}</b><video controls preload="metadata" src="{name}" '
+                         f'style="width:100%;border-radius:8px;background:#000;max-height:680px"></video></div>')
+        st, gr, tt = plan["stabilize"], plan["grade"], plan.get("title") or {}
+        parts.append(f"""
+<section class="card"><h2>🎬 Editing preview (Phase 4)</h2>
+<div class="grid">{vids}</div>
+<table style="margin-top:12px">
+<tr><td>Lambai</td><td>{log['duration']} second (shuru se {plan['trim']['start']}s kaata)</td></tr>
+<tr><td>Scene cuts / transition</td><td>{', '.join(f'{c}s' for c in plan.get('cuts', [])) or '—'} · {e(str((plan.get('transition') or {}).get('type')))}</td></tr>
+<tr><td>Stabilization</td><td>{'on' if st.get('enabled') else 'off'} (smoothing {st.get('smoothing')}, adaptive zoom)</td></tr>
+<tr><td>Color grade</td><td>{e(gr.get('look', ''))}{' · chehre par halka: ' + ', '.join(f'{a}–{b}s' for a, b in gr.get('soft_ranges', [])) if gr.get('soft_ranges') else ''}</td></tr>
+<tr><td>Title</td><td class="urdu" style="font-size:1.1rem;line-height:1.9">{e(tt.get('text', ''))}</td></tr>
+<tr><td>Original video</td><td>{_status(log.get('original_unchanged', False), '✅ Bilkul unchanged', '❌')}</td></tr>
+</table>
+<p class="tip">Pasand aaye to final high-quality files: <code>python run.py export {e(project.path.name)}</code>
+(aap se "yes" poocha jaayega). Kuch badalna ho to <code>edit.json</code> badal kar <code>edit-preview</code> dobara chalayein.</p>
+</section>""")
+
     # --- font test
     ft = pv / "font_test.png"
     try:

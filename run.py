@@ -162,6 +162,50 @@ def _clean_audio(p, recording: str | None):
     return clean
 
 
+def _transcript_quality(data: dict, script_text: str) -> float:
+    """0..1 — how usable a transcript looks. With a script: share of script words
+    matched exactly. Without: share of words that are Urdu script (Whisper sometimes
+    'hallucinates' Latin or Chinese text)."""
+    from pipeline.subtitles import align
+    from pipeline.urdu_text import tokenize_script
+    words = data["words"]
+    if not words:
+        return 0.0
+    odd = sum(1 for w in words if any(("a" <= ch.lower() <= "z") or ord(ch) > 0x3000 for ch in w["text"]))
+    clean_share = 1 - odd / len(words)
+    if script_text:
+        return min(align(tokenize_script(script_text), words)["match_rate"] or 0.0, clean_share)
+    return clean_share
+
+
+def _transcribe_checked(audio, out_file, model: str, script_text: str, use_hint: bool) -> dict:
+    """Transcribe, check the result, and retry the other way if it looks wrong.
+
+    Lesson from a real 40-second video: giving Whisper the script as a 'hint' can make
+    it invent text on real voices (18% match instead of 83%). So: no hint by default,
+    and if a result is poor, the other setting is tried and the better one kept."""
+    import json
+
+    from pipeline.transcribe import transcribe
+    tries = [use_hint and bool(script_text), not (use_hint and bool(script_text))]
+    if not script_text:
+        tries = [False]
+    best, best_q = None, -1.0
+    for k, hint_on in enumerate(tries):
+        data = transcribe(audio, out_file, model=model, hint_text=script_text if hint_on else "")
+        q = _transcript_quality(data, script_text)
+        data["quality"] = round(q, 3)
+        data["script_hint"] = hint_on
+        if q > best_q:
+            best, best_q = data, q
+        if q >= 0.5:
+            break
+        if k + 1 < len(tries):
+            print(f"   ⚠️ Natija kamzor laga (quality {q:.0%}) — doosre tareeqe se dobara sun raha hai…")
+    out_file.write_text(json.dumps(best, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    return best
+
+
 def cmd_subtitles(a) -> int:
     import json
 
@@ -186,8 +230,7 @@ def cmd_subtitles(a) -> int:
     old = json.loads(tr_file.read_text(encoding="utf-8")) if tr_file.exists() else None
     if a.retranscribe or old is None or old.get("model") != model:
         print("🎧 Whisper AI awaaz sun raha hai (sab kuch aap ke computer par, koi upload nahi)…")
-        hint = script_text if cfg.get("use_script_hint", True) else ""
-        old = transcribe(clean, tr_file, model=model, hint_text=hint)
+        old = _transcribe_checked(clean, tr_file, model, script_text, cfg.get("use_script_hint", False))
         print(f"   ✅ {len(old['words'])} alfaaz suney gaye ({old['seconds_taken']} second mein)")
     else:
         print(f"🎧 Pehle wala transcript istemal ho raha hai ({tr_file.name}). Naya chahiye to --retranscribe")
@@ -250,6 +293,72 @@ def cmd_subtitle_video(a) -> int:
                                   p.path / "tmp" / f"subs_{fmt}", background=bg, highlight=highlight)
         print(f"   ✅ {out}")
     print(f"   Dekhne ke liye: python run.py preview {p.path.name} --serve")
+    return 0
+
+
+def cmd_edit_init(a) -> int:
+    import json
+
+    from pipeline.project import Project
+    from pipeline.video_edit import default_plan, plan_path
+    p = Project.open(a.project)
+    rec = p.recording_path(a.recording).name
+    path = plan_path(p)
+    if path.exists() and not a.force:
+        print(f"❌ {path.name} pehle se mojood hai (aap ki tabdeeliyan ho sakti hain). Naya banana ho to --force")
+        return 1
+    plan = default_plan(p, rec, a.title, a.tag or "")
+    if a.trim_start is not None:
+        plan["trim"]["start"] = a.trim_start
+    if a.trim_end is not None:
+        plan["trim"]["end"] = a.trim_end
+    for r in a.soft_range or []:
+        s, e = (float(x) for x in r.split("-"))
+        plan["grade"]["soft_ranges"].append([s, e])
+    path.write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"✅ Editing plan bana: {path}")
+    print(f"   Scene cuts mile: {plan['cuts']}  ·  Shuru se kaat: {plan['trim']['start']}s")
+    print(f"   Agla qadam: python run.py edit-preview {p.path.name}")
+    return 0
+
+
+def cmd_edit_preview(a) -> int:
+    from pipeline.preview import build_preview
+    from pipeline.project import Project
+    from pipeline.video_edit import render
+    p = Project.open(a.project)
+    print("🎬 Editing preview ban raha hai (original ko haath nahi lagaya jaata)…")
+    log = render(p, preview=True, formats=None if a.format == "both" else [a.format])
+    build_preview(p)
+    print(f"\n✅ Preview tayyar ({log['duration']}s). Original unchanged: ✅")
+    print(f"   Dekhein: python run.py preview {p.path.name} --serve")
+    print(f"   Pasand aaye to final file: python run.py export {p.path.name}")
+    return 0
+
+
+def cmd_export(a) -> int:
+    import json
+
+    from pipeline.project import Project
+    from pipeline.video_edit import load_plan, plan_hash, render
+    p = Project.open(a.project)
+    pv = p.path / "edit_preview.json"
+    if not pv.exists():
+        print(f"❌ Pehle preview banayein aur dekhein: python run.py edit-preview {p.path.name}")
+        return 1
+    if json.loads(pv.read_text(encoding="utf-8"))["plan_hash"] != plan_hash(load_plan(p)):
+        print("❌ edit.json preview ke baad badla hai. Pehle naya preview banayein aur dekhein (edit-preview).")
+        return 1
+    if not a.yes:
+        ans = input("Kya aap ne preview dekh kar approve kar diya hai? Final export ke liye 'yes' likhein: ").strip().lower()
+        if ans not in ("yes", "y", "haan", "han"):
+            print("❎ Export cancel.")
+            return 0
+    print("📦 Final export (high quality, bina PREVIEW label)…")
+    log = render(p, preview=False)
+    print("\n✅ Final files tayyar (kuch bhi upload / publish NAHI hua):")
+    for fmt, path in log["outputs"].items():
+        print(f"   {fmt}: {path}")
     return 0
 
 
@@ -349,6 +458,27 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--background", help="apni video clip background ke liye (optional)")
     s.add_argument("--no-highlight", action="store_true", help="bolta hua lafz peela na karein")
     s.set_defaults(fn=cmd_subtitle_video)
+
+    s = sub.add_parser("edit-init", help="Phase 4: video editing ka plan (edit.json) banayein")
+    s.add_argument("project")
+    s.add_argument("--title", required=True, help="Urdu title (Nastaliq mein video par)")
+    s.add_argument("--tag", help="chhota location tag, jaise 'برج العرب، دبئی'")
+    s.add_argument("--recording", help="kaun si video (default: aakhri add ki hui)")
+    s.add_argument("--trim-start", type=float, help="shuru se itne second kaatein")
+    s.add_argument("--trim-end", type=float, help="is second par video khatam")
+    s.add_argument("--soft-range", action="append", help="halka grade (chehre), jaise 29.7-35.5")
+    s.add_argument("--force", action="store_true")
+    s.set_defaults(fn=cmd_edit_init)
+
+    s = sub.add_parser("edit-preview", help="Phase 4: editing ka PREVIEW (9:16 + 16:9)")
+    s.add_argument("project")
+    s.add_argument("--format", choices=["both", "vertical", "landscape"], default="both")
+    s.set_defaults(fn=cmd_edit_preview)
+
+    s = sub.add_parser("export", help="Phase 4: final high-quality files (preview approve karne ke BAAD)")
+    s.add_argument("project")
+    s.add_argument("--yes", action="store_true", help="tasdeeq ka sawal skip")
+    s.set_defaults(fn=cmd_export)
 
     s = sub.add_parser("font-test", help="Urdu Nastaliq render test tasveer")
     s.add_argument("--out")

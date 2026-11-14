@@ -1,0 +1,2395 @@
+{
+ "report": {
+  "created": "2026-11-14T13:43:45",
+  "mode": "script+speech",
+  "match_rate": 0.833,
+  "aligned_rate": 0.991,
+  "rejected_match_rate": null,
+  "whisper_model": "medium",
+  "audio": "d944367e-VID-20261114-WA0004_clean.wav",
+  "counts": {
+   "words": 110,
+   "matched": 90,
+   "fitted": 17,
+   "guessed": 1,
+   "extra": 2,
+   "skipped": 0,
+   "unclear": 3,
+   "cues_landscape": 16,
+   "cues_vertical": 31
+  },
+  "to_check": [
+   {
+    "text": "یہ",
+    "time": 0.14,
+    "why": "unclear"
+   },
+   {
+    "text": "برج",
+    "time": 0.88,
+    "why": "unclear"
+   },
+   {
+    "text": "العرب",
+    "time": 1.3,
+    "why": "unclear"
+   },
+   {
+    "text": "کے",
+    "time": 1.64,
+    "why": "extra"
+   },
+   {
+    "text": "پاس",
+    "time": 1.86,
+    "why": "extra"
+   },
+   {
+    "text": "یہ",
+    "time": 13.96,
+    "why": "guessed"
+   },
+   {
+    "text": "سیڑھیاں",
+    "time": 14.12,
+    "why": "fitted"
+   },
+   {
+    "text": "بنی",
+    "time": 21.02,
+    "why": "fitted"
+   },
+   {
+    "text": "ہوئی",
+    "time": 21.3,
+    "why": "fitted"
+   },
+   {
+    "text": "انہوں",
+    "time": 28.42,
+    "why": "fitted"
+   }
+  ],
+  "skipped": []
+ },
+ "words": [
+  {
+   "text": "کے",
+   "start": 1.64,
+   "end": 1.86,
+   "source": "extra",
+   "check": true,
+   "prob": 0.892
+  },
+  {
+   "text": "پاس",
+   "start": 1.86,
+   "end": 2.1,
+   "source": "extra",
+   "check": true,
+   "prob": 0.913
+  },
+  {
+   "text": "دبئی،",
+   "start": 2.1,
+   "end": 2.48,
+   "source": "fitted",
+   "check": false,
+   "sim": 0.44
+  },
+  {
+   "text": "برج",
+   "start": 2.48,
+   "end": 2.7,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "العرب",
+   "start": 2.7,
+   "end": 2.94,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "کے",
+   "start": 2.94,
+   "end": 3.16,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "پاس",
+   "start": 3.16,
+   "end": 3.36,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "بہت",
+   "start": 3.36,
+   "end": 3.7,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "سارے",
+   "start": 3.7,
+   "end": 3.92,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "جھنڈے",
+   "start": 3.92,
+   "end": 4.24,
+   "source": "fitted",
+   "check": false,
+   "sim": 0.67
+  },
+  {
+   "text": "لگائے",
+   "start": 4.24,
+   "end": 4.62,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہوئے",
+   "start": 4.62,
+   "end": 5.8,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہیں۔",
+   "start": 5.8,
+   "end": 5.8,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "یہ",
+   "start": 5.8,
+   "end": 6.6,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "جھنڈوں",
+   "start": 6.6,
+   "end": 7.04,
+   "source": "fitted",
+   "check": false,
+   "sim": 0.72
+  },
+  {
+   "text": "سے",
+   "start": 7.04,
+   "end": 7.12,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "کچھ",
+   "start": 7.12,
+   "end": 7.36,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "لکھا",
+   "start": 7.36,
+   "end": 7.7,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہوا",
+   "start": 7.7,
+   "end": 7.84,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہے،",
+   "start": 7.84,
+   "end": 8.0,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "لیکن",
+   "start": 8.0,
+   "end": 8.34,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "یہ",
+   "start": 8.34,
+   "end": 8.52,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "نیچے",
+   "start": 8.52,
+   "end": 8.74,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "زمین",
+   "start": 8.74,
+   "end": 9.06,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "سے",
+   "start": 9.06,
+   "end": 9.24,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "نظر",
+   "start": 9.24,
+   "end": 9.5,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "نہیں",
+   "start": 9.5,
+   "end": 9.66,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "آ",
+   "start": 9.66,
+   "end": 9.88,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "رہا",
+   "start": 9.88,
+   "end": 10.02,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہے",
+   "start": 10.02,
+   "end": 10.12,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "کہ",
+   "start": 10.12,
+   "end": 10.32,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "کیا",
+   "start": 10.32,
+   "end": 10.46,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "لکھا",
+   "start": 10.46,
+   "end": 10.8,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہے۔",
+   "start": 10.8,
+   "end": 10.98,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "یہ",
+   "start": 10.98,
+   "end": 11.2,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "اوپر",
+   "start": 11.2,
+   "end": 11.4,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "سے",
+   "start": 11.4,
+   "end": 11.54,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "نظر",
+   "start": 11.54,
+   "end": 11.78,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "آئے",
+   "start": 11.78,
+   "end": 12.0,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "گا۔",
+   "start": 12.0,
+   "end": 12.54,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "میں",
+   "start": 12.54,
+   "end": 12.86,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "اوپر",
+   "start": 12.86,
+   "end": 13.4,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "جاتا",
+   "start": 13.4,
+   "end": 13.88,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہوں،",
+   "start": 13.88,
+   "end": 13.96,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "یہ",
+   "start": 13.96,
+   "end": 14.12,
+   "source": "guessed",
+   "check": true
+  },
+  {
+   "text": "سیڑھیاں",
+   "start": 14.12,
+   "end": 14.44,
+   "source": "fitted",
+   "check": true,
+   "sim": 0.29
+  },
+  {
+   "text": "لگی",
+   "start": 14.44,
+   "end": 14.72,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہوئی",
+   "start": 14.72,
+   "end": 14.86,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہیں۔",
+   "start": 14.86,
+   "end": 15.14,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "کوشش",
+   "start": 15.7,
+   "end": 16.18,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "کرتا",
+   "start": 16.18,
+   "end": 16.46,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہوں",
+   "start": 16.46,
+   "end": 16.54,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "کہ",
+   "start": 16.54,
+   "end": 16.72,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "کیا",
+   "start": 16.72,
+   "end": 16.9,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "لکھا",
+   "start": 16.9,
+   "end": 17.26,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہوا",
+   "start": 17.26,
+   "end": 17.42,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہے۔",
+   "start": 17.42,
+   "end": 18.34,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "یہ",
+   "start": 19.88,
+   "end": 20.26,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "اوپر",
+   "start": 20.26,
+   "end": 20.64,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "سے",
+   "start": 20.64,
+   "end": 20.72,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "جگہ",
+   "start": 20.72,
+   "end": 21.02,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "بنی",
+   "start": 21.02,
+   "end": 21.3,
+   "source": "fitted",
+   "check": true,
+   "sim": 0.22
+  },
+  {
+   "text": "ہوئی",
+   "start": 21.3,
+   "end": 21.46,
+   "source": "fitted",
+   "check": true,
+   "sim": 0.17
+  },
+  {
+   "text": "ہے،",
+   "start": 21.46,
+   "end": 21.62,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "کچھ",
+   "start": 21.62,
+   "end": 21.9,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "دِکھ",
+   "start": 21.9,
+   "end": 22.24,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "رہا",
+   "start": 22.24,
+   "end": 22.5,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہے،",
+   "start": 22.5,
+   "end": 22.76,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "لیکن",
+   "start": 22.76,
+   "end": 23.28,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "سمجھ",
+   "start": 23.28,
+   "end": 23.64,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "نہیں",
+   "start": 23.64,
+   "end": 23.76,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "آ",
+   "start": 23.76,
+   "end": 23.84,
+   "source": "fitted",
+   "check": false,
+   "sim": 0.83
+  },
+  {
+   "text": "رہی",
+   "start": 23.84,
+   "end": 24.0,
+   "source": "fitted",
+   "check": false,
+   "sim": 0.83
+  },
+  {
+   "text": "کہ",
+   "start": 24.0,
+   "end": 24.16,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "کیا",
+   "start": 24.16,
+   "end": 24.32,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "لکھا",
+   "start": 24.32,
+   "end": 24.64,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہوا",
+   "start": 24.64,
+   "end": 24.78,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہے۔",
+   "start": 24.78,
+   "end": 25.74,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "دو",
+   "start": 25.74,
+   "end": 26.06,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "دسمبر",
+   "start": 26.06,
+   "end": 26.62,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "کے",
+   "start": 26.62,
+   "end": 26.78,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "لیے،",
+   "start": 26.78,
+   "end": 26.96,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "نیشنل",
+   "start": 26.96,
+   "end": 27.4,
+   "source": "fitted",
+   "check": false,
+   "sim": 0.67
+  },
+  {
+   "text": "ڈے",
+   "start": 27.4,
+   "end": 27.54,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "کے",
+   "start": 27.54,
+   "end": 27.68,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "لیے",
+   "start": 27.68,
+   "end": 27.78,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "تیاری",
+   "start": 27.78,
+   "end": 28.24,
+   "source": "matched",
+   "check": false,
+   "sim": 0.87
+  },
+  {
+   "text": "کی",
+   "start": 28.24,
+   "end": 28.33,
+   "source": "fitted",
+   "check": false,
+   "sim": 0.58
+  },
+  {
+   "text": "ہے",
+   "start": 28.33,
+   "end": 28.42,
+   "source": "fitted",
+   "check": false,
+   "sim": 0.58
+  },
+  {
+   "text": "انہوں",
+   "start": 28.42,
+   "end": 28.76,
+   "source": "fitted",
+   "check": true,
+   "sim": 0.29
+  },
+  {
+   "text": "نے۔",
+   "start": 28.76,
+   "end": 29.01,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "گورنمنٹ،",
+   "start": 29.76,
+   "end": 30.26,
+   "source": "fitted",
+   "check": false,
+   "sim": 0.76
+  },
+  {
+   "text": "دبئی",
+   "start": 30.26,
+   "end": 30.58,
+   "source": "fitted",
+   "check": false,
+   "sim": 0.33
+  },
+  {
+   "text": "گورنمنٹ",
+   "start": 30.58,
+   "end": 30.98,
+   "source": "fitted",
+   "check": false,
+   "sim": 0.76
+  },
+  {
+   "text": "بہت",
+   "start": 30.98,
+   "end": 31.32,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "خرچہ",
+   "start": 31.32,
+   "end": 31.72,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "کر",
+   "start": 31.72,
+   "end": 31.86,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "رہے",
+   "start": 31.86,
+   "end": 31.98,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہیں",
+   "start": 31.98,
+   "end": 32.06,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "نیشنل",
+   "start": 32.06,
+   "end": 32.4,
+   "source": "fitted",
+   "check": false,
+   "sim": 0.67
+  },
+  {
+   "text": "ڈے",
+   "start": 32.4,
+   "end": 32.56,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "پہ۔",
+   "start": 32.56,
+   "end": 33.34,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "دیکھو،",
+   "start": 33.34,
+   "end": 33.6,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "زبردست",
+   "start": 33.6,
+   "end": 34.1,
+   "source": "fitted",
+   "check": false,
+   "sim": 0.72
+  },
+  {
+   "text": "ویو",
+   "start": 34.1,
+   "end": 34.34,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "بنایا",
+   "start": 34.34,
+   "end": 34.76,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہوا",
+   "start": 34.76,
+   "end": 34.88,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "ہے",
+   "start": 34.88,
+   "end": 35.0,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "سب",
+   "start": 35.0,
+   "end": 35.22,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  },
+  {
+   "text": "کچھ۔",
+   "start": 35.22,
+   "end": 35.62,
+   "source": "matched",
+   "check": false,
+   "sim": 1.0
+  }
+ ],
+ "cues": {
+  "landscape": [
+   {
+    "start": 1.64,
+    "end": 4.2,
+    "text": "کے پاس دبئی، برج العرب کے پاس بہت سارے جھنڈے",
+    "words": [
+     {
+      "text": "کے",
+      "start": 1.64,
+      "end": 1.86
+     },
+     {
+      "text": "پاس",
+      "start": 1.86,
+      "end": 2.1
+     },
+     {
+      "text": "دبئی،",
+      "start": 2.1,
+      "end": 2.48
+     },
+     {
+      "text": "برج",
+      "start": 2.48,
+      "end": 2.7
+     },
+     {
+      "text": "العرب",
+      "start": 2.7,
+      "end": 2.94
+     },
+     {
+      "text": "کے",
+      "start": 2.94,
+      "end": 3.16
+     },
+     {
+      "text": "پاس",
+      "start": 3.16,
+      "end": 3.36
+     },
+     {
+      "text": "بہت",
+      "start": 3.36,
+      "end": 3.7
+     },
+     {
+      "text": "سارے",
+      "start": 3.7,
+      "end": 3.92
+     },
+     {
+      "text": "جھنڈے",
+      "start": 3.92,
+      "end": 4.24
+     }
+    ]
+   },
+   {
+    "start": 4.24,
+    "end": 5.76,
+    "text": "لگائے ہوئے ہیں۔",
+    "words": [
+     {
+      "text": "لگائے",
+      "start": 4.24,
+      "end": 4.62
+     },
+     {
+      "text": "ہوئے",
+      "start": 4.62,
+      "end": 5.8
+     },
+     {
+      "text": "ہیں۔",
+      "start": 5.8,
+      "end": 5.8
+     }
+    ]
+   },
+   {
+    "start": 5.8,
+    "end": 7.96,
+    "text": "یہ جھنڈوں سے کچھ لکھا ہوا ہے،",
+    "words": [
+     {
+      "text": "یہ",
+      "start": 5.8,
+      "end": 6.6
+     },
+     {
+      "text": "جھنڈوں",
+      "start": 6.6,
+      "end": 7.04
+     },
+     {
+      "text": "سے",
+      "start": 7.04,
+      "end": 7.12
+     },
+     {
+      "text": "کچھ",
+      "start": 7.12,
+      "end": 7.36
+     },
+     {
+      "text": "لکھا",
+      "start": 7.36,
+      "end": 7.7
+     },
+     {
+      "text": "ہوا",
+      "start": 7.7,
+      "end": 7.84
+     },
+     {
+      "text": "ہے،",
+      "start": 7.84,
+      "end": 8.0
+     }
+    ]
+   },
+   {
+    "start": 8.0,
+    "end": 10.08,
+    "text": "لیکن یہ نیچے زمین سے نظر نہیں آ رہا ہے",
+    "words": [
+     {
+      "text": "لیکن",
+      "start": 8.0,
+      "end": 8.34
+     },
+     {
+      "text": "یہ",
+      "start": 8.34,
+      "end": 8.52
+     },
+     {
+      "text": "نیچے",
+      "start": 8.52,
+      "end": 8.74
+     },
+     {
+      "text": "زمین",
+      "start": 8.74,
+      "end": 9.06
+     },
+     {
+      "text": "سے",
+      "start": 9.06,
+      "end": 9.24
+     },
+     {
+      "text": "نظر",
+      "start": 9.24,
+      "end": 9.5
+     },
+     {
+      "text": "نہیں",
+      "start": 9.5,
+      "end": 9.66
+     },
+     {
+      "text": "آ",
+      "start": 9.66,
+      "end": 9.88
+     },
+     {
+      "text": "رہا",
+      "start": 9.88,
+      "end": 10.02
+     },
+     {
+      "text": "ہے",
+      "start": 10.02,
+      "end": 10.12
+     }
+    ]
+   },
+   {
+    "start": 10.12,
+    "end": 10.94,
+    "text": "کہ کیا لکھا ہے۔",
+    "words": [
+     {
+      "text": "کہ",
+      "start": 10.12,
+      "end": 10.32
+     },
+     {
+      "text": "کیا",
+      "start": 10.32,
+      "end": 10.46
+     },
+     {
+      "text": "لکھا",
+      "start": 10.46,
+      "end": 10.8
+     },
+     {
+      "text": "ہے۔",
+      "start": 10.8,
+      "end": 10.98
+     }
+    ]
+   },
+   {
+    "start": 10.98,
+    "end": 12.5,
+    "text": "یہ اوپر سے نظر آئے گا۔",
+    "words": [
+     {
+      "text": "یہ",
+      "start": 10.98,
+      "end": 11.2
+     },
+     {
+      "text": "اوپر",
+      "start": 11.2,
+      "end": 11.4
+     },
+     {
+      "text": "سے",
+      "start": 11.4,
+      "end": 11.54
+     },
+     {
+      "text": "نظر",
+      "start": 11.54,
+      "end": 11.78
+     },
+     {
+      "text": "آئے",
+      "start": 11.78,
+      "end": 12.0
+     },
+     {
+      "text": "گا۔",
+      "start": 12.0,
+      "end": 12.54
+     }
+    ]
+   },
+   {
+    "start": 12.54,
+    "end": 15.34,
+    "text": "میں اوپر جاتا ہوں، یہ سیڑھیاں لگی ہوئی ہیں۔",
+    "words": [
+     {
+      "text": "میں",
+      "start": 12.54,
+      "end": 12.86
+     },
+     {
+      "text": "اوپر",
+      "start": 12.86,
+      "end": 13.4
+     },
+     {
+      "text": "جاتا",
+      "start": 13.4,
+      "end": 13.88
+     },
+     {
+      "text": "ہوں،",
+      "start": 13.88,
+      "end": 13.96
+     },
+     {
+      "text": "یہ",
+      "start": 13.96,
+      "end": 14.12
+     },
+     {
+      "text": "سیڑھیاں",
+      "start": 14.12,
+      "end": 14.44
+     },
+     {
+      "text": "لگی",
+      "start": 14.44,
+      "end": 14.72
+     },
+     {
+      "text": "ہوئی",
+      "start": 14.72,
+      "end": 14.86
+     },
+     {
+      "text": "ہیں۔",
+      "start": 14.86,
+      "end": 15.14
+     }
+    ]
+   },
+   {
+    "start": 15.7,
+    "end": 18.54,
+    "text": "کوشش کرتا ہوں کہ کیا لکھا ہوا ہے۔",
+    "words": [
+     {
+      "text": "کوشش",
+      "start": 15.7,
+      "end": 16.18
+     },
+     {
+      "text": "کرتا",
+      "start": 16.18,
+      "end": 16.46
+     },
+     {
+      "text": "ہوں",
+      "start": 16.46,
+      "end": 16.54
+     },
+     {
+      "text": "کہ",
+      "start": 16.54,
+      "end": 16.72
+     },
+     {
+      "text": "کیا",
+      "start": 16.72,
+      "end": 16.9
+     },
+     {
+      "text": "لکھا",
+      "start": 16.9,
+      "end": 17.26
+     },
+     {
+      "text": "ہوا",
+      "start": 17.26,
+      "end": 17.42
+     },
+     {
+      "text": "ہے۔",
+      "start": 17.42,
+      "end": 18.34
+     }
+    ]
+   },
+   {
+    "start": 19.88,
+    "end": 21.58,
+    "text": "یہ اوپر سے جگہ بنی ہوئی ہے،",
+    "words": [
+     {
+      "text": "یہ",
+      "start": 19.88,
+      "end": 20.26
+     },
+     {
+      "text": "اوپر",
+      "start": 20.26,
+      "end": 20.64
+     },
+     {
+      "text": "سے",
+      "start": 20.64,
+      "end": 20.72
+     },
+     {
+      "text": "جگہ",
+      "start": 20.72,
+      "end": 21.02
+     },
+     {
+      "text": "بنی",
+      "start": 21.02,
+      "end": 21.3
+     },
+     {
+      "text": "ہوئی",
+      "start": 21.3,
+      "end": 21.46
+     },
+     {
+      "text": "ہے،",
+      "start": 21.46,
+      "end": 21.62
+     }
+    ]
+   },
+   {
+    "start": 21.62,
+    "end": 24.12,
+    "text": "کچھ دِکھ رہا ہے، لیکن سمجھ نہیں آ رہی کہ",
+    "words": [
+     {
+      "text": "کچھ",
+      "start": 21.62,
+      "end": 21.9
+     },
+     {
+      "text": "دِکھ",
+      "start": 21.9,
+      "end": 22.24
+     },
+     {
+      "text": "رہا",
+      "start": 22.24,
+      "end": 22.5
+     },
+     {
+      "text": "ہے،",
+      "start": 22.5,
+      "end": 22.76
+     },
+     {
+      "text": "لیکن",
+      "start": 22.76,
+      "end": 23.28
+     },
+     {
+      "text": "سمجھ",
+      "start": 23.28,
+      "end": 23.64
+     },
+     {
+      "text": "نہیں",
+      "start": 23.64,
+      "end": 23.76
+     },
+     {
+      "text": "آ",
+      "start": 23.76,
+      "end": 23.84
+     },
+     {
+      "text": "رہی",
+      "start": 23.84,
+      "end": 24.0
+     },
+     {
+      "text": "کہ",
+      "start": 24.0,
+      "end": 24.16
+     }
+    ]
+   },
+   {
+    "start": 24.16,
+    "end": 25.7,
+    "text": "کیا لکھا ہوا ہے۔",
+    "words": [
+     {
+      "text": "کیا",
+      "start": 24.16,
+      "end": 24.32
+     },
+     {
+      "text": "لکھا",
+      "start": 24.32,
+      "end": 24.64
+     },
+     {
+      "text": "ہوا",
+      "start": 24.64,
+      "end": 24.78
+     },
+     {
+      "text": "ہے۔",
+      "start": 24.78,
+      "end": 25.74
+     }
+    ]
+   },
+   {
+    "start": 25.74,
+    "end": 27.74,
+    "text": "دو دسمبر کے لیے، نیشنل ڈے کے لیے",
+    "words": [
+     {
+      "text": "دو",
+      "start": 25.74,
+      "end": 26.06
+     },
+     {
+      "text": "دسمبر",
+      "start": 26.06,
+      "end": 26.62
+     },
+     {
+      "text": "کے",
+      "start": 26.62,
+      "end": 26.78
+     },
+     {
+      "text": "لیے،",
+      "start": 26.78,
+      "end": 26.96
+     },
+     {
+      "text": "نیشنل",
+      "start": 26.96,
+      "end": 27.4
+     },
+     {
+      "text": "ڈے",
+      "start": 27.4,
+      "end": 27.54
+     },
+     {
+      "text": "کے",
+      "start": 27.54,
+      "end": 27.68
+     },
+     {
+      "text": "لیے",
+      "start": 27.68,
+      "end": 27.78
+     }
+    ]
+   },
+   {
+    "start": 27.78,
+    "end": 29.21,
+    "text": "تیاری کی ہے انہوں نے۔",
+    "words": [
+     {
+      "text": "تیاری",
+      "start": 27.78,
+      "end": 28.24
+     },
+     {
+      "text": "کی",
+      "start": 28.24,
+      "end": 28.33
+     },
+     {
+      "text": "ہے",
+      "start": 28.33,
+      "end": 28.42
+     },
+     {
+      "text": "انہوں",
+      "start": 28.42,
+      "end": 28.76
+     },
+     {
+      "text": "نے۔",
+      "start": 28.76,
+      "end": 29.01
+     }
+    ]
+   },
+   {
+    "start": 29.76,
+    "end": 32.02,
+    "text": "گورنمنٹ، دبئی گورنمنٹ بہت خرچہ کر رہے ہیں",
+    "words": [
+     {
+      "text": "گورنمنٹ،",
+      "start": 29.76,
+      "end": 30.26
+     },
+     {
+      "text": "دبئی",
+      "start": 30.26,
+      "end": 30.58
+     },
+     {
+      "text": "گورنمنٹ",
+      "start": 30.58,
+      "end": 30.98
+     },
+     {
+      "text": "بہت",
+      "start": 30.98,
+      "end": 31.32
+     },
+     {
+      "text": "خرچہ",
+      "start": 31.32,
+      "end": 31.72
+     },
+     {
+      "text": "کر",
+      "start": 31.72,
+      "end": 31.86
+     },
+     {
+      "text": "رہے",
+      "start": 31.86,
+      "end": 31.98
+     },
+     {
+      "text": "ہیں",
+      "start": 31.98,
+      "end": 32.06
+     }
+    ]
+   },
+   {
+    "start": 32.06,
+    "end": 33.3,
+    "text": "نیشنل ڈے پہ۔",
+    "words": [
+     {
+      "text": "نیشنل",
+      "start": 32.06,
+      "end": 32.4
+     },
+     {
+      "text": "ڈے",
+      "start": 32.4,
+      "end": 32.56
+     },
+     {
+      "text": "پہ۔",
+      "start": 32.56,
+      "end": 33.34
+     }
+    ]
+   },
+   {
+    "start": 33.34,
+    "end": 35.82,
+    "text": "دیکھو، زبردست ویو بنایا ہوا ہے سب کچھ۔",
+    "words": [
+     {
+      "text": "دیکھو،",
+      "start": 33.34,
+      "end": 33.6
+     },
+     {
+      "text": "زبردست",
+      "start": 33.6,
+      "end": 34.1
+     },
+     {
+      "text": "ویو",
+      "start": 34.1,
+      "end": 34.34
+     },
+     {
+      "text": "بنایا",
+      "start": 34.34,
+      "end": 34.76
+     },
+     {
+      "text": "ہوا",
+      "start": 34.76,
+      "end": 34.88
+     },
+     {
+      "text": "ہے",
+      "start": 34.88,
+      "end": 35.0
+     },
+     {
+      "text": "سب",
+      "start": 35.0,
+      "end": 35.22
+     },
+     {
+      "text": "کچھ۔",
+      "start": 35.22,
+      "end": 35.62
+     }
+    ]
+   }
+  ],
+  "vertical": [
+   {
+    "start": 1.64,
+    "end": 2.44,
+    "text": "کے پاس دبئی،",
+    "words": [
+     {
+      "text": "کے",
+      "start": 1.64,
+      "end": 1.86
+     },
+     {
+      "text": "پاس",
+      "start": 1.86,
+      "end": 2.1
+     },
+     {
+      "text": "دبئی،",
+      "start": 2.1,
+      "end": 2.48
+     }
+    ]
+   },
+   {
+    "start": 2.48,
+    "end": 3.32,
+    "text": "برج العرب کے پاس",
+    "words": [
+     {
+      "text": "برج",
+      "start": 2.48,
+      "end": 2.7
+     },
+     {
+      "text": "العرب",
+      "start": 2.7,
+      "end": 2.94
+     },
+     {
+      "text": "کے",
+      "start": 2.94,
+      "end": 3.16
+     },
+     {
+      "text": "پاس",
+      "start": 3.16,
+      "end": 3.36
+     }
+    ]
+   },
+   {
+    "start": 3.36,
+    "end": 4.2,
+    "text": "بہت سارے جھنڈے",
+    "words": [
+     {
+      "text": "بہت",
+      "start": 3.36,
+      "end": 3.7
+     },
+     {
+      "text": "سارے",
+      "start": 3.7,
+      "end": 3.92
+     },
+     {
+      "text": "جھنڈے",
+      "start": 3.92,
+      "end": 4.24
+     }
+    ]
+   },
+   {
+    "start": 4.24,
+    "end": 5.76,
+    "text": "لگائے ہوئے ہیں۔",
+    "words": [
+     {
+      "text": "لگائے",
+      "start": 4.24,
+      "end": 4.62
+     },
+     {
+      "text": "ہوئے",
+      "start": 4.62,
+      "end": 5.8
+     },
+     {
+      "text": "ہیں۔",
+      "start": 5.8,
+      "end": 5.8
+     }
+    ]
+   },
+   {
+    "start": 5.8,
+    "end": 7.32,
+    "text": "یہ جھنڈوں سے کچھ",
+    "words": [
+     {
+      "text": "یہ",
+      "start": 5.8,
+      "end": 6.6
+     },
+     {
+      "text": "جھنڈوں",
+      "start": 6.6,
+      "end": 7.04
+     },
+     {
+      "text": "سے",
+      "start": 7.04,
+      "end": 7.12
+     },
+     {
+      "text": "کچھ",
+      "start": 7.12,
+      "end": 7.36
+     }
+    ]
+   },
+   {
+    "start": 7.36,
+    "end": 7.96,
+    "text": "لکھا ہوا ہے،",
+    "words": [
+     {
+      "text": "لکھا",
+      "start": 7.36,
+      "end": 7.7
+     },
+     {
+      "text": "ہوا",
+      "start": 7.7,
+      "end": 7.84
+     },
+     {
+      "text": "ہے،",
+      "start": 7.84,
+      "end": 8.0
+     }
+    ]
+   },
+   {
+    "start": 8.0,
+    "end": 8.7,
+    "text": "لیکن یہ نیچے",
+    "words": [
+     {
+      "text": "لیکن",
+      "start": 8.0,
+      "end": 8.34
+     },
+     {
+      "text": "یہ",
+      "start": 8.34,
+      "end": 8.52
+     },
+     {
+      "text": "نیچے",
+      "start": 8.52,
+      "end": 8.74
+     }
+    ]
+   },
+   {
+    "start": 8.74,
+    "end": 9.62,
+    "text": "زمین سے نظر نہیں",
+    "words": [
+     {
+      "text": "زمین",
+      "start": 8.74,
+      "end": 9.06
+     },
+     {
+      "text": "سے",
+      "start": 9.06,
+      "end": 9.24
+     },
+     {
+      "text": "نظر",
+      "start": 9.24,
+      "end": 9.5
+     },
+     {
+      "text": "نہیں",
+      "start": 9.5,
+      "end": 9.66
+     }
+    ]
+   },
+   {
+    "start": 9.66,
+    "end": 10.28,
+    "text": "آ رہا ہے کہ",
+    "words": [
+     {
+      "text": "آ",
+      "start": 9.66,
+      "end": 9.88
+     },
+     {
+      "text": "رہا",
+      "start": 9.88,
+      "end": 10.02
+     },
+     {
+      "text": "ہے",
+      "start": 10.02,
+      "end": 10.12
+     },
+     {
+      "text": "کہ",
+      "start": 10.12,
+      "end": 10.32
+     }
+    ]
+   },
+   {
+    "start": 10.32,
+    "end": 10.94,
+    "text": "کیا لکھا ہے۔",
+    "words": [
+     {
+      "text": "کیا",
+      "start": 10.32,
+      "end": 10.46
+     },
+     {
+      "text": "لکھا",
+      "start": 10.46,
+      "end": 10.8
+     },
+     {
+      "text": "ہے۔",
+      "start": 10.8,
+      "end": 10.98
+     }
+    ]
+   },
+   {
+    "start": 10.98,
+    "end": 11.5,
+    "text": "یہ اوپر سے",
+    "words": [
+     {
+      "text": "یہ",
+      "start": 10.98,
+      "end": 11.2
+     },
+     {
+      "text": "اوپر",
+      "start": 11.2,
+      "end": 11.4
+     },
+     {
+      "text": "سے",
+      "start": 11.4,
+      "end": 11.54
+     }
+    ]
+   },
+   {
+    "start": 11.54,
+    "end": 12.5,
+    "text": "نظر آئے گا۔",
+    "words": [
+     {
+      "text": "نظر",
+      "start": 11.54,
+      "end": 11.78
+     },
+     {
+      "text": "آئے",
+      "start": 11.78,
+      "end": 12.0
+     },
+     {
+      "text": "گا۔",
+      "start": 12.0,
+      "end": 12.54
+     }
+    ]
+   },
+   {
+    "start": 12.54,
+    "end": 13.92,
+    "text": "میں اوپر جاتا ہوں،",
+    "words": [
+     {
+      "text": "میں",
+      "start": 12.54,
+      "end": 12.86
+     },
+     {
+      "text": "اوپر",
+      "start": 12.86,
+      "end": 13.4
+     },
+     {
+      "text": "جاتا",
+      "start": 13.4,
+      "end": 13.88
+     },
+     {
+      "text": "ہوں،",
+      "start": 13.88,
+      "end": 13.96
+     }
+    ]
+   },
+   {
+    "start": 13.96,
+    "end": 15.34,
+    "text": "یہ سیڑھیاں لگی ہوئی ہیں۔",
+    "words": [
+     {
+      "text": "یہ",
+      "start": 13.96,
+      "end": 14.12
+     },
+     {
+      "text": "سیڑھیاں",
+      "start": 14.12,
+      "end": 14.44
+     },
+     {
+      "text": "لگی",
+      "start": 14.44,
+      "end": 14.72
+     },
+     {
+      "text": "ہوئی",
+      "start": 14.72,
+      "end": 14.86
+     },
+     {
+      "text": "ہیں۔",
+      "start": 14.86,
+      "end": 15.14
+     }
+    ]
+   },
+   {
+    "start": 15.7,
+    "end": 16.68,
+    "text": "کوشش کرتا ہوں کہ",
+    "words": [
+     {
+      "text": "کوشش",
+      "start": 15.7,
+      "end": 16.18
+     },
+     {
+      "text": "کرتا",
+      "start": 16.18,
+      "end": 16.46
+     },
+     {
+      "text": "ہوں",
+      "start": 16.46,
+      "end": 16.54
+     },
+     {
+      "text": "کہ",
+      "start": 16.54,
+      "end": 16.72
+     }
+    ]
+   },
+   {
+    "start": 16.72,
+    "end": 18.54,
+    "text": "کیا لکھا ہوا ہے۔",
+    "words": [
+     {
+      "text": "کیا",
+      "start": 16.72,
+      "end": 16.9
+     },
+     {
+      "text": "لکھا",
+      "start": 16.9,
+      "end": 17.26
+     },
+     {
+      "text": "ہوا",
+      "start": 17.26,
+      "end": 17.42
+     },
+     {
+      "text": "ہے۔",
+      "start": 17.42,
+      "end": 18.34
+     }
+    ]
+   },
+   {
+    "start": 19.88,
+    "end": 20.98,
+    "text": "یہ اوپر سے جگہ",
+    "words": [
+     {
+      "text": "یہ",
+      "start": 19.88,
+      "end": 20.26
+     },
+     {
+      "text": "اوپر",
+      "start": 20.26,
+      "end": 20.64
+     },
+     {
+      "text": "سے",
+      "start": 20.64,
+      "end": 20.72
+     },
+     {
+      "text": "جگہ",
+      "start": 20.72,
+      "end": 21.02
+     }
+    ]
+   },
+   {
+    "start": 21.02,
+    "end": 21.58,
+    "text": "بنی ہوئی ہے،",
+    "words": [
+     {
+      "text": "بنی",
+      "start": 21.02,
+      "end": 21.3
+     },
+     {
+      "text": "ہوئی",
+      "start": 21.3,
+      "end": 21.46
+     },
+     {
+      "text": "ہے،",
+      "start": 21.46,
+      "end": 21.62
+     }
+    ]
+   },
+   {
+    "start": 21.62,
+    "end": 22.72,
+    "text": "کچھ دِکھ رہا ہے،",
+    "words": [
+     {
+      "text": "کچھ",
+      "start": 21.62,
+      "end": 21.9
+     },
+     {
+      "text": "دِکھ",
+      "start": 21.9,
+      "end": 22.24
+     },
+     {
+      "text": "رہا",
+      "start": 22.24,
+      "end": 22.5
+     },
+     {
+      "text": "ہے،",
+      "start": 22.5,
+      "end": 22.76
+     }
+    ]
+   },
+   {
+    "start": 22.76,
+    "end": 23.72,
+    "text": "لیکن سمجھ نہیں",
+    "words": [
+     {
+      "text": "لیکن",
+      "start": 22.76,
+      "end": 23.28
+     },
+     {
+      "text": "سمجھ",
+      "start": 23.28,
+      "end": 23.64
+     },
+     {
+      "text": "نہیں",
+      "start": 23.64,
+      "end": 23.76
+     }
+    ]
+   },
+   {
+    "start": 23.76,
+    "end": 24.28,
+    "text": "آ رہی کہ کیا",
+    "words": [
+     {
+      "text": "آ",
+      "start": 23.76,
+      "end": 23.84
+     },
+     {
+      "text": "رہی",
+      "start": 23.84,
+      "end": 24.0
+     },
+     {
+      "text": "کہ",
+      "start": 24.0,
+      "end": 24.16
+     },
+     {
+      "text": "کیا",
+      "start": 24.16,
+      "end": 24.32
+     }
+    ]
+   },
+   {
+    "start": 24.32,
+    "end": 25.7,
+    "text": "لکھا ہوا ہے۔",
+    "words": [
+     {
+      "text": "لکھا",
+      "start": 24.32,
+      "end": 24.64
+     },
+     {
+      "text": "ہوا",
+      "start": 24.64,
+      "end": 24.78
+     },
+     {
+      "text": "ہے۔",
+      "start": 24.78,
+      "end": 25.74
+     }
+    ]
+   },
+   {
+    "start": 25.74,
+    "end": 26.92,
+    "text": "دو دسمبر کے لیے،",
+    "words": [
+     {
+      "text": "دو",
+      "start": 25.74,
+      "end": 26.06
+     },
+     {
+      "text": "دسمبر",
+      "start": 26.06,
+      "end": 26.62
+     },
+     {
+      "text": "کے",
+      "start": 26.62,
+      "end": 26.78
+     },
+     {
+      "text": "لیے،",
+      "start": 26.78,
+      "end": 26.96
+     }
+    ]
+   },
+   {
+    "start": 26.96,
+    "end": 27.74,
+    "text": "نیشنل ڈے کے لیے",
+    "words": [
+     {
+      "text": "نیشنل",
+      "start": 26.96,
+      "end": 27.4
+     },
+     {
+      "text": "ڈے",
+      "start": 27.4,
+      "end": 27.54
+     },
+     {
+      "text": "کے",
+      "start": 27.54,
+      "end": 27.68
+     },
+     {
+      "text": "لیے",
+      "start": 27.68,
+      "end": 27.78
+     }
+    ]
+   },
+   {
+    "start": 27.78,
+    "end": 29.21,
+    "text": "تیاری کی ہے انہوں نے۔",
+    "words": [
+     {
+      "text": "تیاری",
+      "start": 27.78,
+      "end": 28.24
+     },
+     {
+      "text": "کی",
+      "start": 28.24,
+      "end": 28.33
+     },
+     {
+      "text": "ہے",
+      "start": 28.33,
+      "end": 28.42
+     },
+     {
+      "text": "انہوں",
+      "start": 28.42,
+      "end": 28.76
+     },
+     {
+      "text": "نے۔",
+      "start": 28.76,
+      "end": 29.01
+     }
+    ]
+   },
+   {
+    "start": 29.76,
+    "end": 30.94,
+    "text": "گورنمنٹ، دبئی گورنمنٹ",
+    "words": [
+     {
+      "text": "گورنمنٹ،",
+      "start": 29.76,
+      "end": 30.26
+     },
+     {
+      "text": "دبئی",
+      "start": 30.26,
+      "end": 30.58
+     },
+     {
+      "text": "گورنمنٹ",
+      "start": 30.58,
+      "end": 30.98
+     }
+    ]
+   },
+   {
+    "start": 30.98,
+    "end": 31.68,
+    "text": "بہت خرچہ",
+    "words": [
+     {
+      "text": "بہت",
+      "start": 30.98,
+      "end": 31.32
+     },
+     {
+      "text": "خرچہ",
+      "start": 31.32,
+      "end": 31.72
+     }
+    ]
+   },
+   {
+    "start": 31.72,
+    "end": 32.02,
+    "text": "کر رہے ہیں",
+    "words": [
+     {
+      "text": "کر",
+      "start": 31.72,
+      "end": 31.86
+     },
+     {
+      "text": "رہے",
+      "start": 31.86,
+      "end": 31.98
+     },
+     {
+      "text": "ہیں",
+      "start": 31.98,
+      "end": 32.06
+     }
+    ]
+   },
+   {
+    "start": 32.06,
+    "end": 33.3,
+    "text": "نیشنل ڈے پہ۔",
+    "words": [
+     {
+      "text": "نیشنل",
+      "start": 32.06,
+      "end": 32.4
+     },
+     {
+      "text": "ڈے",
+      "start": 32.4,
+      "end": 32.56
+     },
+     {
+      "text": "پہ۔",
+      "start": 32.56,
+      "end": 33.34
+     }
+    ]
+   },
+   {
+    "start": 33.34,
+    "end": 34.3,
+    "text": "دیکھو، زبردست ویو",
+    "words": [
+     {
+      "text": "دیکھو،",
+      "start": 33.34,
+      "end": 33.6
+     },
+     {
+      "text": "زبردست",
+      "start": 33.6,
+      "end": 34.1
+     },
+     {
+      "text": "ویو",
+      "start": 34.1,
+      "end": 34.34
+     }
+    ]
+   },
+   {
+    "start": 34.34,
+    "end": 35.82,
+    "text": "بنایا ہوا ہے سب کچھ۔",
+    "words": [
+     {
+      "text": "بنایا",
+      "start": 34.34,
+      "end": 34.76
+     },
+     {
+      "text": "ہوا",
+      "start": 34.76,
+      "end": 34.88
+     },
+     {
+      "text": "ہے",
+      "start": 34.88,
+      "end": 35.0
+     },
+     {
+      "text": "سب",
+      "start": 35.0,
+      "end": 35.22
+     },
+     {
+      "text": "کچھ۔",
+      "start": 35.22,
+      "end": 35.62
+     }
+    ]
+   }
+  ]
+ },
+ "srt_hashes": {
+  "landscape": "9562abcb041b1d25b1b6e39ecd6a88dad924a905d2c21efe537d66b234dbff30",
+  "vertical": "ff754971c4bdd24674a80d74eaa9362cb603f24cff112d28fc025821a7b7116a"
+ }
+}

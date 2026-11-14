@@ -47,6 +47,8 @@ def align(script_tokens: list[str], asr_words: list[dict]) -> dict:
 _GLUE = {normalize(w) for w in (
     "کا", "کی", "کے", "کو", "میں", "سے", "نے", "پر", "تک", "ہے", "ہیں", "تھا", "تھی", "تھے",
     "گا", "گی", "گے", "ہی", "بھی", "والا", "والی", "والے", "دیں", "کریں", "ہوں",
+    # helper verbs that belong to the verb before them («آ رہی»، «کر رہے»، «لکھا ہوا»)
+    "رہا", "رہی", "رہے", "ہوا", "ہوئی", "ہوئے", "سکتا", "سکتی", "سکتے", "چکا", "چکی", "چکے",
 )}
 
 
@@ -63,7 +65,14 @@ def build_cues(words: list[dict], preset: dict) -> list[dict]:
     def text_of(ws):
         return " ".join(w["text"] for w in ws)
 
-    for w in timed:
+    def words_to_sentence_end(i: int, limit: int = 3) -> int | None:
+        """How many words from timed[i] until the sentence ends (inclusive), if ≤ limit."""
+        for k in range(i, min(len(timed), i + limit)):
+            if ends_sentence(timed[k]["text"]) or timed[k].get("break_after"):
+                return k - i + 1
+        return None
+
+    for i, w in enumerate(timed):
         if cur:
             gap = w["start"] - cur[-1]["end"]
             too_long = len(text_of(cur + [w])) > preset["max_chars"]
@@ -87,6 +96,13 @@ def build_cues(words: list[dict], preset: dict) -> list[dict]:
                     nxt = cur[cut]
                 if _is_glue(nxt["text"]):
                     cut = len(cur)  # no good place found: keep the simple break
+                # The sentence ends in 1-2 more words? Then the next subtitle would be a
+                # tiny stub («ڈے پہ۔»). Move one word over so it reads as a phrase
+                # («نیشنل ڈے پہ۔»), if that word can start a line.
+                rest = words_to_sentence_end(i)
+                if (rest is not None and rest <= 2 and cut == len(cur) and len(cur) >= 3
+                        and not _is_glue(cur[-1]["text"])):
+                    cut = len(cur) - 1
                 cues.append(cur[:cut])
                 cur = cur[cut:]
         cur.append(w)
