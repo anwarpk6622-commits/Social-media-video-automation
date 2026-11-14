@@ -301,6 +301,37 @@ Badalna ho to <code>metadata/metadata.json</code> edit kar ke <code>python run.p
 Thumbnail ka doosra frame: <code>python run.py thumbnail {e(project.path.name)} --time 21.5</code></p>
 </section>""")
 
+    # --- publishing (Phase 6) — only shown when publishing jobs exist
+    jobs_dir = project.path / "publish" / "jobs"
+    if jobs_dir.exists() and any(jobs_dir.glob("*.json")):
+        from publishers.fingerprint import current_fingerprints, differences
+        from publishers.log import PublishLog
+        from publishers.redact import redact
+        from publishers.store import JobStore
+        icons = {"pending": "⏳", "validated": "🔎", "approved": "✅", "uploading": "⬆️", "processing": "⚙️",
+                 "completed": "🎉", "failed": "❌"}
+        rows = ""
+        for j in JobStore(project.path).all():
+            if j.approval:
+                d = differences(j.approval["fingerprints"], current_fingerprints(project.path, j))
+                fp = _status(not d, "🔒 durust", "⚠️ badla: " + "; ".join(d))
+            else:
+                fp = "—"
+            v = j.validation or {}
+            vt = (_status(v.get("ok", False), "✅", "❌") + f" {len(v.get('warnings', []))} warning") if v else "—"
+            rows += (f"<tr><td><code>{e(j.id)}</code></td><td>{icons.get(j.status, '')} {e(j.status)}</td>"
+                     f"<td>{e(j.privacy)}{' ⚠️' if j.is_public else ''}</td><td>{vt}</td>"
+                     f"<td>{e(j.approval.get('time', '—') if j.approval else '—')}</td><td>{fp}</td></tr>")
+        logs = "".join(f"<li><code>{e(r.get('time', ''))}</code> {e(str(r.get('event')))} "
+                       f"<span class='muted'>{e(str(r.get('job') or ''))}</span></li>"
+                       for r in redact(PublishLog(project.path).read(limit=12)))
+        parts.append(f"""
+<section class="card"><h2>🚀 Publishing (Phase 6)</h2>
+<p class="tip">Phase 6.1: sirf framework — <b>koi asal upload mumkin nahi</b>. Default privacy hamesha private / draft / only-me.</p>
+<table><tr><th>Job</th><th>Status</th><th>Privacy</th><th>Validation</th><th>Manzoori</th><th>Fingerprints</th></tr>{rows}</table>
+<h3>Aakhri log</h3><ul>{logs or '<li class="muted">—</li>'}</ul>
+</section>""")
+
     # --- font test
     ft = pv / "font_test.png"
     try:

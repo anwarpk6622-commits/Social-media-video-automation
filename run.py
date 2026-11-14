@@ -424,6 +424,170 @@ def cmd_publish_kit(a) -> int:
     return 1 if (errors or rc_t) else 0
 
 
+# ----------------------------------------------------------------- Phase 6.1 (no network)
+def _pub(project_ref):
+    from pipeline.project import Project
+    from publishers.store import JobStore
+    p = Project.open(project_ref)
+    return p, JobStore(p.path)
+
+
+def _pub_ids(store, platforms):
+    jobs = store.all()
+    if platforms:
+        jobs = [j for j in jobs if j.id in platforms]
+    if not jobs:
+        raise FileNotFoundError("Koi publishing job nahi mila. Pehle: python run.py publish-plan <project>")
+    return [j.id for j in jobs]
+
+
+def cmd_publish_plan(a) -> int:
+    from publishers.plan import make_plan
+    p, _ = _pub(a.project)
+    privacy = {}
+    for item in a.privacy or []:
+        k, _, v = item.partition("=")
+        privacy[k.strip()] = v.strip()
+    res = make_plan(p.path, a.platform, privacy=privacy, schedule=a.schedule)
+    print("🗂️ Publishing plan (kuch upload NAHI hota):")
+    labels = {"created": "naya bana", "unchanged": "koi tabdeeli nahi", "replanned": "badla → dobara check/approve",
+              "completed": "pehle hi mukammal (dobara nahi)"}
+    for r in res:
+        j = r["job"]
+        print(f"   • {j.id:15} privacy={j.privacy:9} status={j.status:10} ({labels[r['action']]})")
+    print(f"   Agla qadam: python run.py publish-check {p.path.name}")
+    return 0
+
+
+def cmd_publish_check(a) -> int:
+    from publishers.validate import validate_and_store
+    p, store = _pub(a.project)
+    bad = 0
+    print("🔎 Dry-run validation (koi API call nahi):")
+    for jid in _pub_ids(store, a.platform):
+        job = validate_and_store(p.path, store, jid)
+        v = job.validation
+        bad += not v["ok"]
+        f = v.get("facts", {})
+        facts = f"{f.get('width')}×{f.get('height')}, {f.get('duration')}s, {f.get('vcodec')}/{f.get('acodec')}" if f else ""
+        print(f"   {'✅' if v['ok'] else '❌'} {jid:15} {job.status:10} {facts}")
+        for e in v["errors"]:
+            print(f"        ❌ {e}")
+        for w in v["warnings"]:
+            print(f"        ⚠️ {w}")
+    print(f"   Agla qadam: python run.py publish-approve {p.path.name}")
+    return 1 if bad else 0
+
+
+def cmd_publish_approve(a) -> int:
+    from publishers.approval import ApprovalError, approve
+    from publishers.models import VALIDATED
+    p, store = _pub(a.project)
+    ids = [j for j in _pub_ids(store, a.platform) if store.load(j).status == VALIDATED]
+    if not ids:
+        print("ℹ️ Manzoori ke liye koi validated job nahi. Pehle: publish-check")
+        return 1
+    print("✋ Manzoori — har job alag se. (Phase 6.1: manzoori ke baad bhi asal upload mumkin nahi.)\n")
+    rc = 0
+    for jid in ids:
+        try:
+            approve(p.path, store, jid)
+            print(f"   ✅ {jid} manzoor. Fingerprints mohr ho gaye.\n")
+        except ApprovalError as e:
+            print(f"   ❎ {jid}: {e}\n")
+            rc = 1
+    return rc
+
+
+def cmd_publish_status(a) -> int:
+    from publishers.fingerprint import current_fingerprints, differences
+    p, store = _pub(a.project)
+    jobs = store.all()
+    if not jobs:
+        print("Koi publishing job nahi.")
+        return 0
+    print(f"📋 Publishing status — {p.path.name}")
+    for j in jobs:
+        note = ""
+        if j.approval:
+            d = differences(j.approval["fingerprints"], current_fingerprints(p.path, j))
+            note = "  ⚠️ manzoori ke baad tabdeeli: " + "; ".join(d) if d else "  🔒 fingerprints durust"
+        up = j.upload.get("remote_id") or (f"{j.upload.get('bytes_sent', 0)} bytes" if j.upload else "")
+        print(f"   • {j.id:15} {j.status:10} privacy={j.privacy:9} {up}{note}")
+    return 0
+
+
+def cmd_publish_run(a) -> int:
+    from publishers.adapters import AdapterNotAvailable, get_adapter
+    from publishers.retry import RetryPolicy
+    from publishers.runner import RunError, run_job
+    p, store = _pub(a.project)
+    live = bool(load_settings()["publishing"].get("live_enabled", False))
+    if not a.simulate:
+        print("⛔ Asal publishing Phase 6.1 mein band hai. Sirf simulation: python run.py publish-run "
+              f"{p.path.name} --simulate")
+        return 1
+    failures = [x for x in (a.fail or "").split(",") if x]
+    rc = 0
+    print("🧪 SIMULATION — internet istemal nahi hota, asal job ki haalat nahi badalti.")
+    for jid in _pub_ids(store, a.platform):
+        try:
+            adapter = get_adapter(store.load(jid).platform, live_enabled=live, simulate=True,
+                                  failures=list(failures), chunk_size=4 * 1024 * 1024)
+            job = run_job(p.path, store, jid, adapter, simulate=True, policy=RetryPolicy(max_attempts=4, base_delay=0.01),
+                          sleep=lambda s: None, poll_interval=0)
+            sent = job.upload.get("bytes_sent", 0)
+            print(f"   {'✅' if job.status == 'completed' else '❌'} {jid:15} → {job.status}  "
+                  f"({sent / 1024 ** 2:.1f} MB, {job.upload.get('retries', 0)} retry){'  ' + job.error.get('message', '') if job.error else ''}")
+            rc |= job.status != "completed"
+        except (RunError, AdapterNotAvailable) as e:
+            print(f"   ❎ {jid}: {e}")
+            rc = 1
+    print("   Asal jobs ki haalat: python run.py publish-status " + p.path.name)
+    return rc
+
+
+def cmd_publish_report(a) -> int:
+    from pipeline.preview import build_preview
+    from publishers.log import PublishLog, report_markdown
+    p, store = _pub(a.project)
+    out = p.path / "publish" / "report.md"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(report_markdown(store.all(), PublishLog(p.path).read()), encoding="utf-8")
+    build_preview(p)
+    print(f"📄 Report: {out}\n   Preview page bhi update hua.")
+    return 0
+
+
+def cmd_secret_scan(a) -> int:
+    from pipeline.config import ROOT
+    from publishers.secret_scan import scan
+    findings = scan(ROOT, staged=not a.all)
+    if not findings:
+        print(f"✅ Secret scan: kuch nahi mila ({'staged files' if not a.all else 'saari tracked files'}).")
+        return 0
+    print("⛔ Secret scan ne yeh pakda (commit roka gaya):")
+    for f in findings:
+        print(f"   {f['file']}:{f['line']}  {f['type']}  {f['match']}")
+    print("   Secret ko file se hatayein (.env ya OS keyring mein rakhein). Ghalat alarm ho to line mein 'secret-scan: allow' likhein.")
+    return 1
+
+
+def cmd_install_hooks(_a) -> int:
+    import subprocess
+
+    from pipeline.config import ROOT
+    from publishers.secret_scan import HOOK
+    d = ROOT / ".githooks"
+    d.mkdir(exist_ok=True)
+    hook = d / "pre-commit"
+    hook.write_text(HOOK, encoding="utf-8")
+    hook.chmod(0o755)
+    subprocess.run(["git", "config", "core.hooksPath", ".githooks"], cwd=ROOT, check=True)
+    print("✅ Har commit se pehle secret scan chalega (.githooks/pre-commit).")
+    return 0
+
+
 def cmd_font_test(a) -> int:
     from pathlib import Path
 
@@ -562,6 +726,47 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--text")
     s.add_argument("--force", action="store_true")
     s.set_defaults(fn=cmd_publish_kit)
+
+    pf = ["youtube", "youtube_shorts", "facebook_reels", "tiktok"]
+    s = sub.add_parser("publish-plan", help="Phase 6.1: har platform ka publishing job (kuch upload nahi)")
+    s.add_argument("project")
+    s.add_argument("--platform", action="append", choices=pf, help="sirf yeh platform (dobara likh sakte hain)")
+    s.add_argument("--privacy", action="append", help="jaise youtube=unlisted (default: private/draft/only-me)")
+    s.add_argument("--schedule", help="jaise 2026-12-02T19:00")
+    s.set_defaults(fn=cmd_publish_plan)
+
+    s = sub.add_parser("publish-check", help="Phase 6.1: dry-run validation (koi API call nahi)")
+    s.add_argument("project")
+    s.add_argument("--platform", action="append", choices=pf)
+    s.set_defaults(fn=cmd_publish_check)
+
+    s = sub.add_parser("publish-approve", help="Phase 6.1: manzoori (APPROVE likhna, public ke liye PUBLIC)")
+    s.add_argument("project")
+    s.add_argument("--platform", action="append", choices=pf)
+    s.set_defaults(fn=cmd_publish_approve)
+
+    s = sub.add_parser("publish-status", help="Phase 6.1: jobs ki haalat + fingerprint check")
+    s.add_argument("project")
+    s.set_defaults(fn=cmd_publish_status)
+
+    s = sub.add_parser("publish-run", help="Phase 6.1: sirf --simulate (offline nakal; asal upload band)")
+    s.add_argument("project")
+    s.add_argument("--simulate", action="store_true")
+    s.add_argument("--platform", action="append", choices=pf)
+    s.add_argument("--fail", help="simulation mein masle: transient,rate_limit,fatal")
+    s.set_defaults(fn=cmd_publish_run)
+
+    s = sub.add_parser("publish-report", help="Phase 6.1: publishing report + preview page")
+    s.add_argument("project")
+    s.set_defaults(fn=cmd_publish_report)
+
+    s = sub.add_parser("secret-scan", help="commit se pehle secrets dhoondein")
+    g = s.add_mutually_exclusive_group()
+    g.add_argument("--all", action="store_true", help="saari tracked files")
+    g.add_argument("--staged", action="store_true", help="sirf commit hone wali files (default; git hook yahi chalata hai)")
+    s.set_defaults(fn=cmd_secret_scan)
+
+    sub.add_parser("install-hooks", help="har commit se pehle khud secret scan").set_defaults(fn=cmd_install_hooks)
 
     s = sub.add_parser("font-test", help="Urdu Nastaliq render test tasveer")
     s.add_argument("--out")

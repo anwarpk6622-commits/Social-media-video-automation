@@ -22,6 +22,11 @@ projects/*/output/
 projects/*/preview/
 projects/*/tmp/
 projects/font_test.png
+# Phase 6: resumable-upload sessions (can act like a key) + simulation runs
+projects/*/publish/private/
+projects/*/publish/simulations/
+projects/*/publish/jobs/*.lock
+projects/*/publish/jobs/*.tmp
 
 # Media files kahin bhi (siwaye assets/ ke, jahan licensed music/sfx rakh sakte hain)
 *.wav

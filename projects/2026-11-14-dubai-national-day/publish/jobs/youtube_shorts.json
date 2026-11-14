@@ -1,0 +1,74 @@
+{
+  "id": "youtube_shorts",
+  "project": "2026-11-14-dubai-national-day",
+  "platform": "youtube_shorts",
+  "status": "validated",
+  "privacy": "private",
+  "schedule": null,
+  "files": {
+    "video": {
+      "path": "output/final_9x16.mp4",
+      "sha256": "d8dd8cf4d5a23c4d163669f019d8c2651e0284dbffb7cf20df53ebbd33cf15af",
+      "bytes": 105059903
+    },
+    "thumbnail": {
+      "path": "output/thumbnails/cover_9x16_1080x1920.jpg",
+      "sha256": "6699175d9ae39fcfa947fb7a5ddb1cc745bcc85dac847b7123ec1421b2beb41a",
+      "bytes": 277698
+    }
+  },
+  "metadata": {
+    "title": "دبئی نیشنل ڈے کی تیاری",
+    "description": "دبئی، برج العرب کے پاس بہت سارے جھنڈے لگائے ہوئے ہیں۔\n\n📍 برج العرب، دبئی\n\nویڈیو پسند آئے تو لائک کریں، چینل سبسکرائب کریں اور بیل آئیکن دبائیں۔\n\n#Shorts #Dubai #UAENationalDay #BurjAlArab #دبئی #اردو",
+    "hashtags": [
+      "#Shorts",
+      "#Dubai",
+      "#UAENationalDay",
+      "#BurjAlArab",
+      "#دبئی",
+      "#اردو"
+    ],
+    "video_file": "output/final_9x16.mp4",
+    "thumbnail_file": "output/thumbnails/cover_9x16_1080x1920.jpg",
+    "cover_timestamp_ms": 18000
+  },
+  "metadata_sha256": "6c771ab28547baba23a4695897880eebc6fbc450ab0e5d23850a5d64387843b2",
+  "validation": {
+    "ok": true,
+    "errors": [],
+    "warnings": [],
+    "facts": {
+      "duration": 37.93,
+      "bytes": 105059903,
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "width": 1080,
+      "height": 1920,
+      "fps": 30.0,
+      "vcodec": "h264",
+      "acodec": "aac",
+      "pix_fmt": "yuv420p"
+    },
+    "time": "2026-11-14T15:26:38",
+    "network_calls": 0
+  },
+  "approval": {},
+  "upload": {},
+  "error": {},
+  "history": [
+    {
+      "from": null,
+      "to": "pending",
+      "time": "2026-11-14T15:26:37",
+      "reason": "plan bana"
+    },
+    {
+      "from": "pending",
+      "to": "validated",
+      "time": "2026-11-14T15:26:38",
+      "reason": "dry-run validation kamyab"
+    }
+  ],
+  "created": "2026-11-14T15:26:37",
+  "updated": "2026-11-14T15:26:38",
+  "version": 1
+}

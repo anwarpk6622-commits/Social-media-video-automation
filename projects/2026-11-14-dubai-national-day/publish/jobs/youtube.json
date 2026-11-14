@@ -1,0 +1,80 @@
+{
+  "id": "youtube",
+  "project": "2026-11-14-dubai-national-day",
+  "platform": "youtube",
+  "status": "validated",
+  "privacy": "private",
+  "schedule": null,
+  "files": {
+    "video": {
+      "path": "output/final_16x9.mp4",
+      "sha256": "f60c01372f31a9bfe0976ac324521ef3cbd31802ca3cfc2f7d0b0fdd0ff05993",
+      "bytes": 67611300
+    },
+    "thumbnail": {
+      "path": "output/thumbnails/youtube_thumbnail_1280x720.jpg",
+      "sha256": "9a0407d7bb258c5829eb05ea30b2ee4be875531574a99c39a85a74b49f594409",
+      "bytes": 136227
+    }
+  },
+  "metadata": {
+    "title": "دبئی نیشنل ڈے کی تیاری | Dubai • UAE National Day",
+    "description": "دبئی، برج العرب کے پاس بہت سارے جھنڈے لگائے ہوئے ہیں۔\n\nدبئی میں برج العرب کے پاس نیشنل ڈے (2 دسمبر) کی تیاری — ساحل پر جھنڈوں کا خوبصورت منظر۔\n\n📍 برج العرب، دبئی\n\nویڈیو پسند آئے تو لائک کریں، چینل سبسکرائب کریں اور بیل آئیکن دبائیں۔\n\n#Dubai #UAENationalDay #BurjAlArab #دبئی #اردو",
+    "hashtags": [
+      "#Dubai",
+      "#UAENationalDay",
+      "#BurjAlArab",
+      "#دبئی",
+      "#اردو"
+    ],
+    "tags": [
+      "Dubai",
+      "UAE National Day",
+      "Burj Al Arab",
+      "دبئی",
+      "اردو",
+      "دبئی نیشنل ڈے کی تیاری"
+    ],
+    "video_file": "output/final_16x9.mp4",
+    "thumbnail_file": "output/thumbnails/youtube_thumbnail_1280x720.jpg"
+  },
+  "metadata_sha256": "7c71ac3997681b2e89e39b08782125dd443c9af795062c99de4b8a30e787e4ee",
+  "validation": {
+    "ok": true,
+    "errors": [],
+    "warnings": [],
+    "facts": {
+      "duration": 37.93,
+      "bytes": 67611300,
+      "container": "mov,mp4,m4a,3gp,3g2,mj2",
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "vcodec": "h264",
+      "acodec": "aac",
+      "pix_fmt": "yuv420p"
+    },
+    "time": "2026-11-14T15:26:38",
+    "network_calls": 0
+  },
+  "approval": {},
+  "upload": {},
+  "error": {},
+  "history": [
+    {
+      "from": null,
+      "to": "pending",
+      "time": "2026-11-14T15:26:37",
+      "reason": "plan bana"
+    },
+    {
+      "from": "pending",
+      "to": "validated",
+      "time": "2026-11-14T15:26:38",
+      "reason": "dry-run validation kamyab"
+    }
+  ],
+  "created": "2026-11-14T15:26:37",
+  "updated": "2026-11-14T15:26:38",
+  "version": 1
+}

@@ -68,6 +68,9 @@
       "facebook_reels": { "caption_max": 2200, "caption_ideal": 125, "hashtags_ideal": 5 },
       "tiktok":         { "caption_max": 2200, "caption_ideal": 150, "hashtags_ideal": 5 }
     },
-    "thumbnail": { "youtube_size": [1280, 720], "cover_size": [1080, 1920], "max_bytes": 2000000 }
+    "thumbnail": { "youtube_size": [1280, 720], "cover_size": [1080, 1920], "max_bytes": 2000000 },
+    "live_enabled": false,
+    "_live_enabled_note": "Phase 6.1: false = koi asal upload mumkin nahi. Sirf aap ki manzoori se (Phase 6.2+) badlega.",
+    "retry": { "max_attempts": 5, "base_delay_seconds": 1.0, "max_delay_seconds": 60.0 }
   }
 }

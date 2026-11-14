@@ -1,0 +1,4 @@
+#!/bin/sh
+# Secret scan before every commit (installed by: python run.py install-hooks)
+if command -v python3 >/dev/null 2>&1; then PY=python3; else PY=python; fi
+exec "$PY" run.py secret-scan --staged
