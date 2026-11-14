@@ -6,3 +6,5 @@
 {"time": "2026-11-14T15:26:38", "event": "job_validated", "job": "tiktok", "errors": [], "warnings": []}
 {"time": "2026-11-14T15:26:38", "event": "job_validated", "job": "youtube", "errors": [], "warnings": []}
 {"time": "2026-11-14T15:26:38", "event": "job_validated", "job": "youtube_shorts", "errors": [], "warnings": []}
+{"time": "2026-11-14T17:41:22", "event": "job_replanned", "job": "youtube", "version": 2, "privacy": "private"}
+{"time": "2026-11-14T17:41:26", "event": "job_validated", "job": "youtube", "errors": [], "warnings": []}

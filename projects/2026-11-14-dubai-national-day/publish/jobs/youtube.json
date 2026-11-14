@@ -15,6 +15,11 @@
       "path": "output/thumbnails/youtube_thumbnail_1280x720.jpg",
       "sha256": "9a0407d7bb258c5829eb05ea30b2ee4be875531574a99c39a85a74b49f594409",
       "bytes": 136227
+    },
+    "captions": {
+      "path": "output/captions/youtube.srt",
+      "sha256": "17f6b9df3b2398192271bea372d2fdb53cb54f1d15a743dc7ac05d83f7535ca2",
+      "bytes": 1478
     }
   },
   "metadata": {
@@ -54,7 +59,7 @@
       "acodec": "aac",
       "pix_fmt": "yuv420p"
     },
-    "time": "2026-11-14T15:26:38",
+    "time": "2026-11-14T17:41:26",
     "network_calls": 0
   },
   "approval": {},
@@ -72,9 +77,21 @@
       "to": "validated",
       "time": "2026-11-14T15:26:38",
       "reason": "dry-run validation kamyab"
+    },
+    {
+      "from": "validated",
+      "to": "pending",
+      "time": "2026-11-14T17:41:22",
+      "reason": "plan badla (files / metadata / privacy / schedule)"
+    },
+    {
+      "from": "pending",
+      "to": "validated",
+      "time": "2026-11-14T17:41:26",
+      "reason": "dry-run validation kamyab"
     }
   ],
   "created": "2026-11-14T15:26:37",
-  "updated": "2026-11-14T15:26:38",
-  "version": 1
+  "updated": "2026-11-14T17:41:26",
+  "version": 2
 }

@@ -12,7 +12,10 @@ Verified against the official docs (developers.google.com/youtube/v3, read 2026-
   Content-Range; 308 Resume Incomplete + Range header = bytes the server has; chunk size a
   multiple of 256 KB (except the last); status query with Content-Range: bytes */TOTAL;
   an expired session returns 404 → start a NEW upload from the beginning; retry 5xx.
-- thumbnails.set: POST …/upload/youtube/v3/thumbnails/set?videoId=, ~50 units, JPEG/PNG.
+- thumbnails.set: POST …/upload/youtube/v3/thumbnails/set?videoId=, ~50 units, JPEG/PNG, max 50 MB;
+  since 2026-11-03 also for Shorts after processing (we still skip Shorts — conservative).
+- videos.insert notifySubscribers defaults to True → we send False for test uploads.
+Re-verified 2026-11-14 (developers.google.com/youtube/data/…, revision history up to 2026-11-03).
 - captions.insert: POST …/upload/youtube/v3/captions, 400 units, scope youtube.force-ssl.
 - videos.list: status.uploadStatus (deleted/failed/processed/rejected/uploaded),
   processingDetails.processingStatus (failed/processing/succeeded/terminated).
@@ -44,6 +47,9 @@ CHUNK = 8 * 1024 * 1024            # 32 × 256 KB
 assert CHUNK % (256 * 1024) == 0
 
 RETRYABLE_STATUS = {500, 502, 503, 504}
+# Phase 6.2 is PRIVATE-ONLY in the adapter itself (third independent layer after guard.py and
+# approval): no public, no unlisted, no publishAt. Relaxing this needs a code change + new approval.
+ALLOWED_PRIVACY = ("private",)
 RETRYABLE_403 = {"rateLimitExceeded", "userRateLimitExceeded", "backendError"}
 
 
@@ -165,19 +171,12 @@ class YouTubeAdapter(PlatformAdapter):
     # ---- safety (second layer, besides guard.py)
     def _privacy_body(self, job: Job) -> dict:
         priv = job.privacy
-        if priv not in PRIVACY[self.platform]:
-            raise FatalError(f"Ghalat privacy: {priv}")
-        public_ok = bool((job.approval or {}).get("public_confirmed"))
-        if priv != "private" and not public_ok:
-            raise FatalError(f"'{priv}' ke liye alag PUBLIC tasdeeq nahi — upload roka gaya.")
-        status = {"privacyStatus": priv,                                 # ALWAYS explicit (default would be public)
-                  "selfDeclaredMadeForKids": bool(self.cfg.get("made_for_kids", False))}
+        if priv not in PRIVACY[self.platform] or priv not in ALLOWED_PRIVACY:
+            raise FatalError(f"Privacy '{priv}' Phase 6.2 mein mana hai — sirf 'private'. Upload roka gaya.")
         if job.schedule:
-            if not public_ok:
-                raise FatalError("Schedule (publishAt) video ko khud PUBLIC kar deta hai — alag PUBLIC tasdeeq zaroori.")
-            status["privacyStatus"] = "private"
-            status["publishAt"] = job.schedule
-        return status
+            raise FatalError("Schedule (publishAt) video ko khud PUBLIC kar deta hai — Phase 6.2 mein mana hai.")
+        return {"privacyStatus": "private",                              # ALWAYS explicit (API default is PUBLIC)
+                "selfDeclaredMadeForKids": bool(self.cfg.get("made_for_kids", False))}
 
     def video_body(self, job: Job) -> dict:
         m = job.metadata
@@ -196,7 +195,8 @@ class YouTubeAdapter(PlatformAdapter):
     # ---- resumable upload
     def start(self, job: Job) -> dict:
         size = (self.root / job.files["video"]["path"]).stat().st_size
-        resp = self.http.request("POST", UPLOAD_URL, params={"uploadType": "resumable", "part": "snippet,status"},
+        resp = self.http.request("POST", UPLOAD_URL, params={"uploadType": "resumable", "part": "snippet,status",
+                                         "notifySubscribers": "false"},
                                  headers={"Content-Type": "application/json; charset=UTF-8",
                                           "X-Upload-Content-Length": str(size), "X-Upload-Content-Type": "video/*"},
                                  data=json.dumps(self.video_body(job), ensure_ascii=False).encode("utf-8"), timeout=60)
@@ -243,11 +243,19 @@ class YouTubeAdapter(PlatformAdapter):
         vid = v.get("id")
         if not vid:
             raise FatalError("Upload ke baad YouTube video ID nahi mili")
-        if v.get("privacyStatus") not in (None, job.privacy) and not job.schedule:
-            raise FatalError(f"YouTube par privacy '{v.get('privacyStatus')}' — manzoor shuda '{job.privacy}' nahi!")
+        returned = v.get("privacyStatus") or self._fetch_privacy(vid)
+        if returned != "private":
+            raise FatalError(f"⚠️ KHATRA: YouTube ne video {vid} ki privacy '{returned}' batayi, 'private' nahi! "
+                             "Thumbnail/captions roke gaye. Foran YouTube Studio mein check karein.")
         self.extras = {"thumbnail": self._thumbnail(job, vid), "captions": self._captions(job, vid)}
         url = f"https://youtu.be/{vid}" if self.platform == "youtube_shorts" else f"https://www.youtube.com/watch?v={vid}"
         return {"remote_id": vid, "url": url, "extras": self.extras}
+
+    def _fetch_privacy(self, vid: str):
+        resp = self.http.request("GET", VIDEOS_URL, params={"part": "status", "id": vid}, timeout=60)
+        raise_for(resp, "privacy check")
+        items = resp.json().get("items") or []
+        return (items[0].get("status") or {}).get("privacyStatus") if items else None
 
     # ---- extras (failures do not undo the private upload; they are reported)
     def _thumbnail(self, job: Job, vid: str) -> str:
@@ -297,6 +305,9 @@ class YouTubeAdapter(PlatformAdapter):
         pd = items[0].get("processingDetails", {})
         up, proc = st.get("uploadStatus"), pd.get("processingStatus")
         info = {"uploadStatus": up, "processingStatus": proc, "privacyStatus": st.get("privacyStatus")}
+        if st.get("privacyStatus") not in (None, "private"):
+            info["alert"] = "privacy 'private' nahi rahi — YouTube Studio mein foran check karein"
+            return "failed", info
         if up in ("failed", "rejected", "deleted") or proc in ("failed", "terminated"):
             info.update({"failureReason": st.get("failureReason"), "rejectionReason": st.get("rejectionReason")})
             return "failed", info

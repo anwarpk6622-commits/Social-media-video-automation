@@ -74,4 +74,9 @@ Baaqi sab — manzoori, fingerprints, retry, resume, logs — framework khud kar
    typed `UPLOAD youtube`. Privacy hamesha **private** (YouTube ka default PUBLIC hai — is liye har dafa explicit bheji jaati hai).
 
 Quota: videos.insert ~1 unit (Video Uploads bucket, 100/din), thumbnails.set ~50, captions.insert 400, videos.list 1;
-roz ka default 10,000 units. Shorts par custom thumbnail API se nahi lagta (skip).
+roz ka default 10,000 units (reset: aadhi raat Pacific time). Har request (ghalat bhi) kam az kam 1 unit.
+Shorts thumbnail: API ab (3 Nov 2026 se) processing ke baad support karti hai — hum abhi bhi skip karte hain (ihtiyat).
+Test upload `notifySubscribers=false` ke saath hota hai (API ka default true hai).
+Adapter Phase 6.2 mein **sirf private** qubool karta hai (public / unlisted / schedule code mein band) aur upload ke
+baad YouTube ki batayi hui privacy check karta hai — 'private' na ho to thumbnail/captions roke jaate hain aur alert.
+Login ke baad client secret bhi keyring ke token mein shamil hota hai — chahein to `secrets/` wali JSON file hata sakte hain.

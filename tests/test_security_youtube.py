@@ -402,11 +402,13 @@ class Resp:
 class FakeYouTube:
     """In-memory YouTube following the documented resumable protocol."""
 
-    def __init__(self, root, faults=None, polls=1, final_upload_status="processed", partial_at=None):
+    def __init__(self, root, faults=None, polls=1, final_upload_status="processed", partial_at=None,
+                 returned_privacy="SAME", poll_privacy="private"):
         self.root, self.faults, self.polls = root, dict(faults or {}), polls
         self.calls, self.sessions, self.received = [], 0, bytearray()
         self.init_body, self.thumb, self.caption_body, self.final = None, None, None, final_upload_status
         self.partial_at, self.put_n, self._get_n = partial_at, 0, 0
+        self.returned_privacy, self.poll_privacy = returned_privacy, poll_privacy
 
     def request(self, method, url, params=None, headers=None, data=None, timeout=None):
         headers = headers or {}
@@ -440,8 +442,11 @@ class FakeYouTube:
             take = data if self.partial_at != self.put_n else data[: len(data) // 2]
             self.received += take
             if len(self.received) == total:
-                return Resp(200, body={"id": "VID123", "status": {"privacyStatus": self.init_body["status"]["privacyStatus"],
-                                                                  "uploadStatus": "uploaded"}})
+                rp = self.init_body["status"]["privacyStatus"] if self.returned_privacy == "SAME" else self.returned_privacy
+                st = {"uploadStatus": "uploaded"}
+                if rp is not None:
+                    st["privacyStatus"] = rp
+                return Resp(200, body={"id": "VID123", "status": st})
             return Resp(308, {"Range": f"bytes=0-{len(self.received) - 1}"})
         if method == "POST" and url == yt.THUMB_URL:
             self.thumb = (params, len(data))
@@ -449,12 +454,14 @@ class FakeYouTube:
         if method == "POST" and url == yt.CAPTIONS_URL:
             self.caption_body = data
             return Resp(200, body={"id": "CAP1"})
+        if method == "GET" and url == yt.VIDEOS_URL and params.get("part") == "status":
+            return Resp(200, body={"items": [{"status": {"privacyStatus": "private"}}]})
         if method == "GET" and url == yt.VIDEOS_URL:
             self._get_n += 1
             if self._get_n <= self.polls:
                 return Resp(200, body={"items": [{"status": {"uploadStatus": "uploaded"},
                                                   "processingDetails": {"processingStatus": "processing"}}]})
-            return Resp(200, body={"items": [{"status": {"uploadStatus": self.final, "privacyStatus": "private"},
+            return Resp(200, body={"items": [{"status": {"uploadStatus": self.final, "privacyStatus": self.poll_privacy},
                                               "processingDetails": {"processingStatus": "succeeded" if self.final == "processed" else "failed"}}]})
         return Resp(400)
 
@@ -483,7 +490,7 @@ class TestYouTubeAdapter(Base):
         self.assertNotIn("publishAt", st)
         self.assertEqual(http.init_body["snippet"]["defaultLanguage"], "ur")
         init = http.calls[0]
-        self.assertEqual(init[2], {"uploadType": "resumable", "part": "snippet,status"})
+        self.assertEqual(init[2], {"uploadType": "resumable", "part": "snippet,status", "notifySubscribers": "false"})
         self.assertEqual(init[3]["X-Upload-Content-Length"], str(video.stat().st_size))
         puts = [c for c in http.calls if c[0] == "PUT"]
         for c in puts[:-1]:
@@ -569,6 +576,53 @@ class TestYouTubeAdapter(Base):
         job.privacy, job.schedule = "private", "2099-01-01T10:00"
         with self.assertRaises(FatalError):                       # publishAt would make it public later
             ad.video_body(job)
+
+    def test_returned_public_privacy_stops_everything(self):
+        self.approved("youtube")
+        j, http = self.live(http=FakeYouTube(self.root, returned_privacy="public"))
+        self.assertEqual(j.status, md.FAILED)
+        self.assertIn("KHATRA", j.error["message"])
+        self.assertIn("VID123", j.error["message"])                     # so the user can find it in Studio
+        self.assertIsNone(http.thumb)
+        self.assertIsNone(http.caption_body)
+
+    def test_missing_returned_privacy_is_looked_up(self):
+        self.approved("youtube")
+        j, http = self.live(http=FakeYouTube(self.root, returned_privacy=None))
+        self.assertEqual(j.status, md.COMPLETED)
+        self.assertTrue(any(c[0] == "GET" and c[2].get("part") == "status" for c in http.calls))
+
+    def test_privacy_change_during_processing_is_flagged(self):
+        self.approved("youtube")
+        j, _ = self.live(http=FakeYouTube(self.root, poll_privacy="unlisted"))
+        self.assertEqual(j.status, md.FAILED)
+        self.assertIn("private", j.error["message"])
+
+    def test_adapter_refuses_non_private_even_with_public_confirmation(self):
+        make_plan(self.root, ["youtube"])
+        job = self.store.load("youtube")
+        ad = yt.YouTubeAdapter("youtube", self.root, FakeYouTube(self.root), YCFG)
+        job.approval = {"public_confirmed": True}
+        for priv in ("public", "unlisted"):
+            job.privacy = priv
+            with self.assertRaises(FatalError):
+                ad.video_body(job)
+        job.privacy, job.schedule = "private", "2099-01-01T10:00"
+        with self.assertRaises(FatalError):
+            ad.video_body(job)
+
+    def test_public_cannot_execute_even_if_private_only_turned_off(self):
+        """Worst case: someone sets private_only=false AND gives public confirmation."""
+        for priv in ("public", "unlisted"):
+            self.approved("youtube", priv, extra=["PUBLIC"])
+            http = FakeYouTube(self.root)
+            cfg = dict(LIVE_CFG, private_only=False)
+            ad = yt.YouTubeAdapter("youtube", self.root, http, YCFG)
+            j = run_job(self.root, self.store, "youtube", ad, simulate=False, policy=FAST, poll_interval=0,
+                        signer=self.signer, guard_cfg=cfg, settings_live=True,
+                        confirm_fn=lambda _: "UPLOAD youtube", **NO_SLEEP)
+            self.assertEqual(http.calls, [], f"{priv}: not a single request may reach YouTube")
+            self.assertEqual(j.status, md.FAILED)
 
     def test_logs_and_jobs_never_contain_session_urls_or_tokens(self):
         self.approved("youtube")
