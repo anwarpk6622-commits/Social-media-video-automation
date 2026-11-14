@@ -29,6 +29,14 @@ URDU_SAMPLE_LINES = [
 
 RENDERER_JS = Path(__file__).with_name("urdu_text_render.js")
 
+# Why a word is on the "please check" list (shown to the creator)
+WHY = {
+    "guessed": "saaf sunai nahi diya — waqt andaze se",
+    "extra": "bola gaya magar script mein nahi tha (subtitle mein shamil)",
+    "unclear": "kuch suna gaya magar samajh nahi aaya (subtitle mein nahi)",
+    "fitted": "kam yaqeeni — awaaz script se kam milti hai",
+}
+
 
 def render_urdu_png(out_png: Path, lines: list[str], *, width: int = 1920, height: int = 1080,
                     font_size: int = 72, background: str = "#1d2433", bold: bool = False) -> Path:
@@ -80,6 +88,10 @@ audio{width:100%}code{background:var(--bg);padding:2px 6px;border-radius:6px;fon
 .urdu{font-family:"UrduNastaliq",serif;direction:rtl;text-align:right;font-size:1.35rem;line-height:2.4;white-space:pre-wrap}
 .tip{border-left:4px solid var(--accent);padding:4px 12px}
 """
+
+
+def _fmt_time(t: float | None) -> str:
+    return "—" if t is None else f"{t:.1f}s"
 
 
 def _rel(target: Path, start: Path) -> str:
@@ -179,8 +191,9 @@ def build_preview(project: Project) -> Path:
         else:
             mode = "Sirf awaaz (script ke baghair) — spelling khud check karein"
         check_rows = "".join(
-            f"<tr><td>{w['time'] if w['time'] is not None else '—'}s</td><td class='urdu' style='font-size:1.1rem;line-height:1.9'>{e(w['text'])}</td>"
-            f"<td>{e({'guessed': 'saaf sunai nahi diya', 'extra': 'script mein nahi tha', 'fitted': 'kam yaqeeni'}.get(w['why'], w['why']))}</td></tr>"
+            f"<tr><td>{_fmt_time(w['time'])}</td>"
+            f"<td class='urdu' style='font-size:1.1rem;line-height:1.9'>{e(w['text'])}</td>"
+            f"<td>{e(WHY.get(w['why'], w['why']))}</td></tr>"
             for w in sr["to_check"]
         ) or "<tr><td colspan='3' class='ok'>✅ Koi shak wala lafz nahi</td></tr>"
         skipped = (f"<p>⏭️ Script ke yeh alfaaz recording mein nahi mile: <span class='urdu' style='font-size:1.1rem'>"

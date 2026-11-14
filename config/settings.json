@@ -37,7 +37,7 @@
   "subtitles": {
     "model": "medium",
     "use_script_hint": true,
-    "min_script_match": 0.3,
+    "min_script_match": 0.2,
     "highlight_words": true,
     "colors": { "text": "#FFFFFF", "highlight": "#FFD60A", "outline": "#000000" },
     "landscape": {

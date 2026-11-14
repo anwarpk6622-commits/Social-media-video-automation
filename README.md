@@ -176,6 +176,12 @@ Kya hota hai:
    - `subtitles/urdu_vertical.srt` — **9:16 / Shorts, TikTok, Reels** (chhoti, 2–4 alfaaz)
 4. Report batati hai kitne alfaaz match hue aur 🔎 kaun se alfaaz aap khud check karein.
 
+Agar recording script se thori mukhtalif ho, to system khud sambhal leta hai:
+- Aap ne script ka koi **hissa chhod diya** → woh alfaaz subtitle mein **nahi** aate (report mein "chhoote" list).
+- Aap ne **apni taraf se** koi lafz bola (jaise «دوستو») → agar Whisper ko yaqeen ho to subtitle mein aata hai, warna sirf check list mein.
+- Shor / goonj ki wajah se Whisper ne kuch alfaaz **ghalat** sune → phir bhi script ki sahi likhai, sahi waqt par
+  (milti julti awaazein jaise ص/س/ش aur ز/ذ/ض pehchani jaati hain).
+
 Lines todte waqt system Urdu grammar ka khayal rakhta hai: «کا، کی، میں، سے، ہے» jaise alfaaz se nayi line
 shuru nahi hoti, aur jumle ka aakhri lafz akela screen par nahi chhoda jaata.
 

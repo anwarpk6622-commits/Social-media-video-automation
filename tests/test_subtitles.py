@@ -66,12 +66,68 @@ class TestAlign(unittest.TestCase):
         self.assertTrue(extra[0]["check"])
 
     def test_unheard_script_words_guessed_or_skipped(self):
-        # gap 1.0s → room for 2 words: guessed + flagged
+        src = lambda al: {w["text"]: w["source"] for w in al["words"]}  # noqa: E731
+        # silent stretch of 1.0s → Whisper missed them: guessed + flagged
         al = st.align(["ایک", "دو", "تین", "چار"], [W("ایک", 0, .5), W("چار", 1.5, 2)])
-        self.assertEqual([w["source"] for w in al["words"]], ["matched", "guessed", "guessed", "matched"])
-        # no gap → speaker skipped them: not shown in subtitles
+        self.assertEqual(src(al), {"ایک": "matched", "دو": "guessed", "تین": "guessed", "چار": "matched"})
+        # no time between → speaker skipped them: not shown in subtitles
         al = st.align(["ایک", "دو", "تین", "چار"], [W("ایک", 0, .5), W("چار", .52, 1)])
-        self.assertEqual([w["source"] for w in al["words"]], ["matched", "skipped", "skipped", "matched"])
+        self.assertEqual(src(al), {"ایک": "matched", "دو": "skipped", "تین": "skipped", "چار": "matched"})
+
+
+class TestAlignRegressions(unittest.TestCase):
+    """Problems found in the full 50-second test (2026-11-14)."""
+
+    def _say(self, text, start, step=0.4, garble=None):
+        out, t = [], start
+        for k, w in enumerate(text.split()):
+            out.append(W(garble[k] if garble else w, round(t, 2), round(t + step - .05, 2)))
+            t += step
+        return out, t
+
+    def test_one_wrong_common_word_does_not_shift_the_timeline(self):
+        # Sentence 2 is badly mis-heard; «فون» exists in sentence 2 (script) AND 3 (speech).
+        s1, t = self._say("پہلا قدم روشنی ہے۔", 0)
+        s2, t = self._say("فون کو منہ سے قریب رکھیں۔", t + 1, garble=["مانٹو", "مون", "سی", "توہا", "گریب", "راکھے"])
+        s3, _ = self._say("تیسرا قدم یہ ہے کہ فون کو سیدھا رکھیں۔", t + 1)
+        script = tokenize_script("پہلا قدم روشنی ہے۔ فون کو منہ سے قریب رکھیں۔ تیسرا قدم یہ ہے کہ فون کو سیدھا رکھیں۔")
+        al = st.align(script, s1 + s2 + s3)
+        first_of_2 = next(w for w in al["words"] if w["text"] == "فون")
+        self.assertAlmostEqual(first_of_2["start"], s2[0]["start"], delta=0.3)
+        third = next(w for w in al["words"] if w["text"] == "تیسرا")
+        self.assertAlmostEqual(third["start"], s3[0]["start"], delta=0.3)
+
+    def test_skipped_phrase_is_exactly_detected(self):
+        a, t = self._say("فون کو قریب رکھیں", 0)
+        b, _ = self._say("تیسرا قدم یہ ہے", t + 0.3)
+        script = tokenize_script("فون کو قریب رکھیں اور پنکھا بند کر دیں۔ تیسرا قدم یہ ہے")
+        al = st.align(script, a + b)
+        skipped = [w["text"] for w in al["words"] if w["source"] == "skipped"]
+        self.assertEqual(skipped, ["اور", "پنکھا", "بند", "کر", "دیں۔"])
+        # the sentence ended inside the skipped part → subtitle breaks there
+        cues = st.build_cues(al["words"], CFG["landscape"])
+        self.assertEqual(cues[0]["text"], "فون کو قریب رکھیں")
+
+    def test_confident_extra_word_shown_unclear_junk_hidden(self):
+        asr = [W("السلام", 0, .5), W("دوستو", .5, 1, prob=.95), W("علیکم", 1, 1.5), W("مہ", 1.6, 1.7, prob=.2)]
+        al = st.align(["السلام", "علیکم"], asr)
+        shown = [w["text"] for w in al["words"] if w.get("start") is not None]
+        self.assertIn("دوستو", shown)
+        self.assertNotIn("مہ", shown)
+        self.assertEqual([u["text"] for u in al["unclear"]], ["مہ"])
+
+    def test_misheard_word_in_gap_is_fitted_not_skipped(self):
+        # «چینل» heard as «ویڈیو» (low confidence): must still appear, at that time
+        asr = [W("میرے", 0, .4), W("ویڈیو", .4, .9, prob=.3), W("میں", .9, 1.2), W("خوش", 1.2, 1.6)]
+        al = st.align(tokenize_script("میرے چینل میں خوش"), asr)
+        ch = next(w for w in al["words"] if w["text"] == "چینل")
+        self.assertNotEqual(ch["source"], "skipped")
+        self.assertAlmostEqual(ch["start"], .4, delta=0.15)
+
+    def test_similar_sounds_score_higher(self):
+        from pipeline.align import similarity
+        self.assertGreater(similarity(normalize("شافہ"), normalize("صاف")), similarity(normalize("دن"), normalize("صاف")))
+        self.assertEqual(similarity("فون", "فون"), 1.0)
 
     def test_without_script_uses_speech(self):
         al = st.align([], [W("سلام", 0, 1)])

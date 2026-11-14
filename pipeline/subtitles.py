@@ -8,12 +8,12 @@ script and the TIMING from Whisper ("forced alignment" by sequence matching).
 from __future__ import annotations
 
 import datetime as _dt
-import difflib
 import hashlib
 import json
 import re
 from pathlib import Path
 
+from .align import align_words
 from .urdu_text import ends_clause, ends_sentence, normalize, strip_direction_marks, tokenize_script
 
 RLM = "‏"  # right-to-left mark: keeps punctuation on the correct side in players
@@ -33,50 +33,13 @@ def _distribute(tokens: list[str], start: float, end: float) -> list[tuple[float
 
 
 def align(script_tokens: list[str], asr_words: list[dict]) -> dict:
-    """Return words (text from script, timing from speech) + a quality report."""
+    """Return words (text from script, timing from speech) + a quality report.
+
+    The real work is in align.py (character-level, sound-aware global alignment)."""
     if not script_tokens:
         words = [{"text": w["text"], "start": w["start"], "end": w["end"], "source": "speech"} for w in asr_words]
-        return {"words": words, "match_rate": None, "mode": "speech-only"}
-
-    s_keys = [normalize(t) for t in script_tokens]
-    a_keys = [normalize(w["text"]) for w in asr_words]
-    sm = difflib.SequenceMatcher(None, s_keys, a_keys, autojunk=False)
-    words: list[dict] = []
-    matched = 0
-    end_of_audio = asr_words[-1]["end"] if asr_words else 0.0
-
-    for op, i1, i2, j1, j2 in sm.get_opcodes():
-        if op == "equal":
-            for k in range(i2 - i1):
-                a = asr_words[j1 + k]
-                words.append({"text": script_tokens[i1 + k], "start": a["start"], "end": a["end"], "source": "matched"})
-            matched += i2 - i1
-        elif op == "replace":
-            # Same place in the speech, different spelling → script text, speech timing.
-            span = _distribute(script_tokens[i1:i2], asr_words[j1]["start"], asr_words[j2 - 1]["end"])
-            low_conf = min(w.get("prob", 1) for w in asr_words[j1:j2]) < 0.4
-            ratio = (i2 - i1) / (j2 - j1)
-            for tok, (s, e) in zip(script_tokens[i1:i2], span):
-                words.append({"text": tok, "start": s, "end": e, "source": "fitted",
-                              "check": bool(low_conf and not 0.5 <= ratio <= 2)})
-        elif op == "delete":
-            # Script words that were not heard. Were they skipped, or just unclear?
-            prev_end = words[-1]["end"] if words else 0.0
-            next_start = asr_words[j1]["start"] if j1 < len(asr_words) else end_of_audio
-            n = i2 - i1
-            if next_start - prev_end >= 0.12 * n:
-                for tok, (s, e) in zip(script_tokens[i1:i2], _distribute(script_tokens[i1:i2], prev_end, next_start)):
-                    words.append({"text": tok, "start": s, "end": e, "source": "guessed", "check": True})
-            else:
-                for tok in script_tokens[i1:i2]:
-                    words.append({"text": tok, "start": None, "end": None, "source": "skipped"})
-        elif op == "insert":
-            # Spoken but not in the script (ad-lib, repeat, or mis-hearing): keep, but flag.
-            for a in asr_words[j1:j2]:
-                words.append({"text": a["text"], "start": a["start"], "end": a["end"],
-                              "source": "extra", "check": True})
-
-    return {"words": words, "match_rate": round(matched / len(script_tokens), 3), "mode": "script+speech"}
+        return {"words": words, "match_rate": None, "mode": "speech-only", "unclear": []}
+    return align_words(script_tokens, asr_words)
 
 
 # --------------------------------------------------------------- cues
@@ -127,7 +90,8 @@ def build_cues(words: list[dict], preset: dict) -> list[dict]:
                 cues.append(cur[:cut])
                 cur = cur[cut:]
         cur.append(w)
-        if ends_sentence(w["text"]) or (ends_clause(w["text"]) and len(text_of(cur)) > preset["max_chars"] * 0.5):
+        if (ends_sentence(w["text"]) or w.get("break_after")
+                or (ends_clause(w["text"]) and len(text_of(cur)) > preset["max_chars"] * 0.5)):
             cues.append(cur)
             cur = []
     if cur:
@@ -257,11 +221,13 @@ def build_subtitles(sub_dir: Path, transcript: dict, script_text: str, settings:
     cues = {k: build_cues(al["words"], settings[k]) for k in targets}
     hashes = {k: write_srt(cues[k], p, settings[k].get("srt_line_chars", 42)) for k, p in targets.items()}
 
-    flagged = [w for w in al["words"] if w.get("check")]
+    flagged = sorted([w for w in al["words"] if w.get("check")] + al.get("unclear", []),
+                     key=lambda w: w["start"] if w.get("start") is not None else 1e9)
     report = {
         "created": _dt.datetime.now().isoformat(timespec="seconds"),
         "mode": al["mode"],
         "match_rate": al.get("match_rate"),
+        "aligned_rate": al.get("aligned_rate"),
         "rejected_match_rate": al.get("rejected_match_rate"),
         "whisper_model": transcript.get("model"),
         "audio": transcript.get("audio"),
@@ -272,6 +238,7 @@ def build_subtitles(sub_dir: Path, transcript: dict, script_text: str, settings:
             "guessed": sum(w["source"] == "guessed" for w in al["words"]),
             "extra": sum(w["source"] == "extra" for w in al["words"]),
             "skipped": sum(w["source"] == "skipped" for w in al["words"]),
+            "unclear": len(al.get("unclear", [])),
             "cues_landscape": len(cues["landscape"]),
             "cues_vertical": len(cues["vertical"]),
         },

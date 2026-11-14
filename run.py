@@ -208,7 +208,7 @@ def cmd_subtitles(a) -> int:
     if r["to_check"]:
         print(f"   🔎 {len(r['to_check'])} alfaaz khud check karein (preview page par list hai), jaise:")
         for w in r["to_check"][:5]:
-            print(f"      {w['time']:>6}s  {w['text']}  ({w['why']})")
+            print(f"      {w['time']:>6.1f}s  {w['text']}  ({w['why']})")
     if r["skipped"]:
         print(f"   ⏭️ Script ke yeh alfaaz recording mein nahi mile (subtitle mein nahi): {' '.join(r['skipped'][:12])}")
     print(f"   Agla qadam: python run.py subtitle-video {p.path.name}")
