@@ -9,9 +9,9 @@ Har video ka apna folder: `YYYY-MM-DD-naam/` — `python run.py new "Naam"` se b
 ├── input/clips/        # video clips (Phase 4)
 ├── script/             # prompt.txt, script.md, read_aloud.txt
 ├── audio/processed/    # saaf awaaz (*_clean.wav, *_clean_preview.m4a, *_report.json)
-├── subtitles/          # Phase 3
+├── subtitles/          # urdu.srt (16:9), urdu_vertical.srt (9:16), words.json, transcript_*.json
 ├── output/             # Phase 5
-└── preview/            # preview.html + tasveerein
+└── preview/            # preview.html, subtitles_16x9.mp4, subtitles_9x16.mp4 + tasveerein
 ```
 
 **Privacy:** recordings, videos, audio aur preview **GitHub par nahi jaate** (.gitignore). Sirf

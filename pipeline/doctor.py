@@ -47,6 +47,18 @@ def run_doctor() -> bool:
         line(p.exists(), f"Font: {p.name}")
     line((FONTS_DIR / "OFL.txt").exists(), "Font license (OFL.txt)")
 
+    # Phase 3: subtitles
+    try:
+        import faster_whisper
+        line(True, "faster-whisper (Urdu subtitles)", faster_whisper.__version__)
+    except ImportError:
+        line(False, "faster-whisper (Urdu subtitles)", "install: pip install -r requirements.txt")
+    models = ROOT / "models"
+    downloaded = sorted(p.name.split("--")[-1] for p in models.glob("models--*")) if models.exists() else []
+    line(bool(downloaded), "Whisper model downloaded",
+         ", ".join(downloaded) if downloaded else "pehli dafa 'python run.py subtitles ...' par khud download hoga (~1.5 GB)",
+         required=False)
+
     try:
         import anthropic  # noqa: F401
         have_sdk = True

@@ -1,8 +1,11 @@
-# Phase 1 + 2 ka core system sirf Python ki apni (built-in) libraries istemal karta hai.
-# Koi pip package zaroori NAHI.
+# Install:  pip install -r requirements.txt
+#
+# Phase 1 + 2 sirf Python ki apni (built-in) libraries istemal karte hain.
+# Phase 3 (Urdu subtitles) ke liye:
+faster-whisper>=1.2.1,<2      # free, aap ke computer par chalta hai (Whisper AI)
 #
 # Bahar ke free tools jo chahiye:
-#   - FFmpeg   (awaaz ki processing)      https://ffmpeg.org/download.html
-#   - Node.js + Playwright (Urdu Nastaliq text rendering)  — dekhein package.json
+#   - FFmpeg   (awaaz aur video)                         https://ffmpeg.org/download.html
+#   - Node.js + Playwright (Urdu Nastaliq rendering) — dekhein package.json
 #
 # Optional PAID API script mode ke liye:  pip install -r requirements-optional.txt

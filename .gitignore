@@ -42,6 +42,9 @@ projects/font_test.png
 !assets/**/*.m4a
 !assets/**/*.mp4
 
+# ---------- 2b. AI models (bari files, khud download hoti hain) ----------
+models/
+
 # ---------- 3. Node.js ----------
 node_modules/
 package-lock.json

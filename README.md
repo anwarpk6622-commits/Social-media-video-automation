@@ -2,7 +2,7 @@
 
 **YouTube, Facebook aur TikTok ke liye Urdu videos banane ka system — aap ki apni awaaz ke saath.**
 
-> **Abhi kya tayyar hai:** Phase 1 (bunyaad) + Phase 2 (AI Urdu script + awaaz ki safai)
+> **Abhi kya tayyar hai:** Phase 1 (bunyaad) + Phase 2 (AI Urdu script + awaaz ki safai) + Phase 3 (Urdu subtitles)
 > **Yeh system kuch bhi upload ya publish NAHI karta.** Social media APIs abhi connect nahi hain.
 
 ---
@@ -30,8 +30,8 @@
 | AI se Urdu script (FREE mode + optional PAID mode) | 2 | ✅ Tayyar |
 | Aap ki asal awaaz ki safai (shor, volume, clarity) | 2 | ✅ Tayyar |
 | Preview page (sun kar / dekh kar check) | 2 | ✅ Tayyar |
-| Urdu subtitles | 3 | ⏳ Agla |
-| Video editing (transitions, color, music) | 4 | ⏳ |
+| Urdu subtitles (.srt + video par Nastaliq, bolta lafz highlight) | 3 | ✅ Tayyar |
+| Video editing (transitions, color, music) | 4 | ⏳ Agla |
 | YouTube / TikTok / Facebook versions | 5 | ⏳ |
 | Official publishing (aap ki approval ke saath) | 6 | ⏳ |
 
@@ -62,6 +62,13 @@ Teeno **free** hain.
   npm install
   npm run setup-browser
   ```
+
+### (d) Python packages (Whisper AI — subtitles ke liye)
+```
+pip install -r requirements.txt
+```
+Pehli dafa subtitles banate waqt Whisper ka Urdu model khud download hoga (**medium ≈ 1.5 GB**, sirf ek dafa,
+`models/` folder mein). Us ke baad internet ki zaroorat nahi, aur aap ki awaaz kahin upload nahi hoti.
 
 > **Kyun Chromium?** Nastaliq ke huroof ka jurna bohat mushkil hai. Humne test kiya ke kuch FFmpeg
 > versions Urdu ki jagah **khaali dabbe □□□** banate hain. Browser engine Nastaliq bilkul sahi likhta hai.
@@ -156,6 +163,46 @@ Browser mein di gayi link kholein (`http://127.0.0.1:8000/...`). Page par:
 
 Band karne ke liye terminal mein **Ctrl + C**.
 
+### Qadam 7 — Urdu subtitles banayein
+```bash
+python run.py subtitles mobile-video-tips
+```
+Kya hota hai:
+1. **Whisper AI** aap ki saaf awaaz sunta hai aur har lafz ka **waqt** nikaalta hai (aap ke computer par).
+2. System sune hue alfaaz ko aap ki **script** se milata hai: **likhai script se** (100% sahi spelling),
+   **waqt awaaz se**. Is liye Whisper ki spelling ki ghaltiyan subtitles mein nahi aatin.
+3. Do files banti hain:
+   - `subtitles/urdu.srt` — **16:9 / YouTube** (lambi lines). YouTube Studio → Subtitles → Upload file
+   - `subtitles/urdu_vertical.srt` — **9:16 / Shorts, TikTok, Reels** (chhoti, 2–4 alfaaz)
+4. Report batati hai kitne alfaaz match hue aur 🔎 kaun se alfaaz aap khud check karein.
+
+Lines todte waqt system Urdu grammar ka khayal rakhta hai: «کا، کی، میں، سے، ہے» jaise alfaaz se nayi line
+shuru nahi hoti, aur jumle ka aakhri lafz akela screen par nahi chhoda jaata.
+
+Options:
+```bash
+python run.py subtitles mobile-video-tips --model small     # purana / kamzor computer (tez, kam durust)
+python run.py subtitles mobile-video-tips --model large-v3  # sab se durust (3 GB, dheema)
+python run.py subtitles mobile-video-tips --no-script       # script ke baghair (sirf Whisper ki likhai)
+python run.py subtitles mobile-video-tips --retranscribe    # awaaz dobara sunein
+```
+
+### Qadam 8 — Subtitles wali test video
+```bash
+python run.py subtitle-video mobile-video-tips
+python run.py subtitle-video mobile-video-tips --background "meri-clip.mp4"   # apni clip ke upar
+```
+`preview/subtitles_16x9.mp4` aur `preview/subtitles_9x16.mp4` banti hain: aap ki awaaz + Nastaliq subtitles,
+aur **bolta hua lafz peela** highlight. Preview page (Qadam 6) par dono videos chalti hain.
+
+### Qadam 9 — Ghalti theek karna (bohat aasan)
+1. `subtitles/urdu.srt` **Notepad** (ya koi text editor) mein kholein.
+2. Ghalat lafz theek karein, ya waqt (`00:00:03,160 --> 00:00:07,380`) badlein. Save karein (UTF-8).
+3. `python run.py subtitle-video mobile-video-tips` dobara chalayein.
+
+Aap ki tabdeeliyan **mehfooz** hain: agar baad mein `subtitles` dobara chalayein to system inkar karega taake
+edit na mitey. Zabardasti naya banana ho to `--force` (purani file ka backup khud ban jaata hai).
+
 ---
 
 ## 5. Achhi recording ke tips
@@ -182,6 +229,8 @@ Band karne ke liye terminal mein **Ctrl + C**.
 | `python run.py add-recording <project> <file>` | Recording ki mehfooz copy |
 | `python run.py verify <project>` | Originals unchanged hain? |
 | `python run.py audio <project> [options]` | Awaaz saaf karein |
+| `python run.py subtitles <project> [--model medium] [--no-script]` | Urdu subtitles (.srt) |
+| `python run.py subtitle-video <project> [--background clip.mp4]` | Subtitles wali test video (16:9 + 9:16) |
 | `python run.py preview <project> [--serve]` | Preview page |
 | `python run.py font-test` | Urdu Nastaliq render test |
 | `python -m unittest discover -s tests -v` | Automated tests (developer check) |
@@ -197,6 +246,7 @@ Band karne ke liye terminal mein **Ctrl + C**.
 | Script — FREE mode (claude.ai chat) | **Free** (claude.ai free plan ki rozana had ke andar) |
 | Script — PAID API mode (`--use-api`) | **~$0.05–$0.15 fi script** (andaza; zyada se zyada ~$0.33) |
 | Awaaz ki safai, preview | **Free** (aap ke computer par chalta hai) |
+| Urdu subtitles (Whisper AI) | **Free** — ek dafa ~1.5 GB download; 5 minute ki awaaz ≈ 3–6 minute CPU par |
 
 ### Paid API mode (optional) — kab aur kaise
 Sirf tab, jab aap bohat saari scripts automatic banana chahein.
@@ -233,12 +283,16 @@ ek munasib doosra model istemal karti hai (server-side fallback) — us ki lagat
 | ⚠️ Loudness target tak nahi pahunchi | Recording mein bohat tez peaks hain. Mic thora door rakh kar record karein. Awaaz phir bhi istemal ho sakti hai |
 | Awaaz "robot" jaisi lagti hai | `--noise light` ya `--noise off` try karein |
 | `script-check` hisse nahi pehchanta | claude.ai ka **Copy button** istemal karein, `## [HOOK]` jaisi headings mat badlein |
+| Subtitles mein ajeeb alfaaz / kam match % | Kya recording isi script ki hai? Report ke 🔎 alfaaz check karein, ya `--model large-v3` |
+| `haath se edit ki hai` error | Aap ki SRT tabdeeliyan bachane ke liye hai. Naya banana ho to `--force` |
+| Whisper model download nahi hota | Internet check karein; pehli dafa ~1.5 GB download hota hai |
+| Subtitles bohat dheemay | `--model small` istemal karein |
 
 ---
 
 ## 10. Aage kya aayega
 
-- **Phase 3:** Urdu subtitles — Whisper AI se transcription + aap ki script se match (sahi spelling), Nastaliq style, lafz-ba-lafz highlight
+- ~~**Phase 3:** Urdu subtitles~~ ✅ ho gaya
 - **Phase 4:** Cinematic editing — transitions, color grading, music ducking, sound effects
 - **Phase 5:** YouTube 16:9, Shorts, TikTok, Facebook Reel versions + thumbnail
 - **Phase 6:** Official APIs se publishing — sirf aap ki approval ke baad
@@ -254,10 +308,15 @@ ek munasib doosra model istemal karti hai (server-side fallback) — us ki lagat
 │   ├── project.py         #   projects + originals ki hifazat
 │   ├── script_writer.py   #   Urdu script (free / paid)
 │   ├── audio.py           #   awaaz ki safai (FFmpeg)
+│   ├── transcribe.py      #   Whisper AI: awaaz → alfaaz + waqt
+│   ├── subtitles.py       #   script ↔ awaaz match, subtitle hisse, SRT
+│   ├── subtitle_render.py #   video par Nastaliq subtitles
+│   ├── urdu_text.py       #   Urdu likhai ke helpers
 │   ├── preview.py         #   preview page
 │   ├── urdu_text_render.js#   Nastaliq → tasveer (Chromium)
 │   └── doctor.py          #   system check
 ├── assets/                # fonts, music, sfx, luts, branding
+├── models/                # Whisper AI model (khud download, GitHub par nahi)
 ├── projects/              # har video ka folder
 ├── publishers/            # Phase 6 (abhi khaali)
 └── tests/                 # automated tests

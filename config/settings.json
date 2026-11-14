@@ -34,6 +34,24 @@
     "keep_silence_seconds": 0.35
   },
 
+  "subtitles": {
+    "model": "medium",
+    "use_script_hint": true,
+    "min_script_match": 0.3,
+    "highlight_words": true,
+    "colors": { "text": "#FFFFFF", "highlight": "#FFD60A", "outline": "#000000" },
+    "landscape": {
+      "width": 1920, "height": 1080, "font_size": 62, "bottom": 60, "max_width": 1500, "box": false,
+      "max_chars": 48, "max_words": 10, "max_seconds": 5.5, "min_seconds": 1.0, "gap_split": 0.7,
+      "srt_line_chars": 42
+    },
+    "vertical": {
+      "width": 1080, "height": 1920, "font_size": 84, "bottom": 560, "max_width": 860, "box": false,
+      "max_chars": 22, "max_words": 4, "max_seconds": 3.0, "min_seconds": 0.7, "gap_split": 0.5,
+      "srt_line_chars": 24
+    }
+  },
+
   "fonts": {
     "urdu_regular": "assets/fonts/NotoNastaliqUrdu-Regular.ttf",
     "urdu_bold": "assets/fonts/NotoNastaliqUrdu-Bold.ttf",

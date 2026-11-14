@@ -166,6 +166,48 @@ def build_preview(project: Project) -> Path:
             parts.append('<section class="card"><h2>📝 Script</h2><p class="muted">script.md abhi khaali hai. '
                          'prompt.txt ko claude.ai mein paste karein aur jawab script.md mein rakhein.</p></section>')
 
+    # --- subtitles (Phase 3)
+    words_file = project.path / "subtitles" / "words.json"
+    if words_file.exists():
+        sr = json.loads(words_file.read_text(encoding="utf-8"))["report"]
+        c = sr["counts"]
+        if sr["mode"] == "script+speech":
+            mode = f"Script + awaaz — <b>{round(sr['match_rate'] * 100)}%</b> alfaaz bilkul match"
+        elif sr.get("rejected_match_rate") is not None:
+            mode = (f"⚠️ Recording script se sirf {round(sr['rejected_match_rate'] * 100)}% milti thi — "
+                    "Whisper ki likhai istemal hui, spelling khud check karein")
+        else:
+            mode = "Sirf awaaz (script ke baghair) — spelling khud check karein"
+        check_rows = "".join(
+            f"<tr><td>{w['time'] if w['time'] is not None else '—'}s</td><td class='urdu' style='font-size:1.1rem;line-height:1.9'>{e(w['text'])}</td>"
+            f"<td>{e({'guessed': 'saaf sunai nahi diya', 'extra': 'script mein nahi tha', 'fitted': 'kam yaqeeni'}.get(w['why'], w['why']))}</td></tr>"
+            for w in sr["to_check"]
+        ) or "<tr><td colspan='3' class='ok'>✅ Koi shak wala lafz nahi</td></tr>"
+        skipped = (f"<p>⏭️ Script ke yeh alfaaz recording mein nahi mile: <span class='urdu' style='font-size:1.1rem'>"
+                   f"{e(' '.join(sr['skipped']))}</span></p>") if sr["skipped"] else ""
+        videos = ""
+        for name, label in (("subtitles_16x9.mp4", "16:9 — YouTube"), ("subtitles_9x16.mp4", "9:16 — Shorts / TikTok / Reels")):
+            if (pv / name).exists():
+                videos += (f'<div><b>{label}</b><video controls preload="metadata" src="{name}" '
+                           f'style="width:100%;border-radius:8px;background:#000;max-height:640px"></video></div>')
+        if not videos:
+            videos = f"<p class='muted'>Video abhi nahi bani: <code>python run.py subtitle-video {e(project.path.name)}</code></p>"
+        parts.append(f"""
+<section class="card"><h2>💬 Urdu subtitles</h2>
+<table>
+<tr><td>Tareeqa</td><td>{mode}</td></tr>
+<tr><td>Alfaaz</td><td>{c['words']} (match {c['matched']}, script se durust {c['fitted']}, andaaza {c['guessed']}, zyada {c['extra']}, chhoote {c['skipped']})</td></tr>
+<tr><td>Subtitle hisse</td><td>16:9: {c['cues_landscape']} · 9:16: {c['cues_vertical']}</td></tr>
+<tr><td>Whisper model</td><td>{e(str(sr.get('whisper_model')))}</td></tr>
+</table>
+<div class="grid" style="margin-top:12px">{videos}</div>
+<h3>🔎 In alfaaz ko video mein dekh kar check karein</h3>
+<table><tr><th>Waqt</th><th>Lafz</th><th>Kyun</th></tr>{check_rows}</table>
+{skipped}
+<p class="tip muted">Ghalti mile to <code>subtitles/urdu.srt</code> (aur <code>urdu_vertical.srt</code>) Notepad mein kholein, text ya waqt theek karein,
+save karein, phir <code>python run.py subtitle-video {e(project.path.name)}</code> chalayein. Aap ki tabdeeliyan mehfooz rehti hain.</p>
+</section>""")
+
     # --- font test
     ft = pv / "font_test.png"
     try:

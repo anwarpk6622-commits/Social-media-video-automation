@@ -150,6 +150,109 @@ def cmd_audio(a) -> int:
     return 0
 
 
+def _clean_audio(p, recording: str | None):
+    """The cleaned voice file for a recording (Phase 2 output)."""
+    src = p.recording_path(recording)
+    clean = p.processed_dir / f"{src.stem}_clean.wav"
+    if not clean.exists():
+        raise FileNotFoundError(
+            f"Saaf awaaz nahi mili ({clean.name}). Pehle chalayein: python run.py audio {p.path.name}"
+            + (f" --recording {recording}" if recording else "")
+        )
+    return clean
+
+
+def cmd_subtitles(a) -> int:
+    import json
+
+    from pipeline.project import Project
+    from pipeline.script_writer import parse_sections
+    from pipeline.subtitles import build_subtitles
+    from pipeline.transcribe import transcribe
+    p = Project.open(a.project)
+    cfg = load_settings()["subtitles"]
+    clean = _clean_audio(p, a.recording)
+    sub_dir = p.path / "subtitles"
+    model = a.model or cfg["model"]
+
+    script_text = ""
+    script_file = p.script_dir / "script.md"
+    if not a.no_script and script_file.exists():
+        script_text = parse_sections(script_file.read_text(encoding="utf-8")).get("RECORDING SCRIPT", "")
+    if not script_text:
+        print("ℹ️ Script istemal nahi ho rahi — subtitles sirf Whisper ki suni hui likhai se banenge (spelling khud check karein).")
+
+    tr_file = sub_dir / f"transcript_{clean.stem}.json"
+    old = json.loads(tr_file.read_text(encoding="utf-8")) if tr_file.exists() else None
+    if a.retranscribe or old is None or old.get("model") != model:
+        print("🎧 Whisper AI awaaz sun raha hai (sab kuch aap ke computer par, koi upload nahi)…")
+        hint = script_text if cfg.get("use_script_hint", True) else ""
+        old = transcribe(clean, tr_file, model=model, hint_text=hint)
+        print(f"   ✅ {len(old['words'])} alfaaz suney gaye ({old['seconds_taken']} second mein)")
+    else:
+        print(f"🎧 Pehle wala transcript istemal ho raha hai ({tr_file.name}). Naya chahiye to --retranscribe")
+
+    res = build_subtitles(sub_dir, old, script_text, cfg, force=a.force)
+    r = res["report"]
+    c = r["counts"]
+    print("\n📝 Subtitles tayyar!")
+    if r["mode"] == "script+speech":
+        print(f"   Script se match:  {round(r['match_rate'] * 100)}% alfaaz bilkul wahi suney gaye")
+        print(f"   Alfaaz: {c['words']}  (match {c['matched']}, script se durust {c['fitted']}, "
+              f"andaaza {c['guessed']}, script se zyada {c['extra']}, chhoote {c['skipped']})")
+    elif r.get("rejected_match_rate") is not None:
+        print(f"   ⚠️ Recording script se sirf {round(r['rejected_match_rate'] * 100)}% milti hai — shayad kisi aur script ki "
+              "recording hai. Is liye Whisper ki likhai istemal hui. Spelling zaroor check karein.")
+    print(f"   16:9 (YouTube):           {res['files']['landscape']}  ({c['cues_landscape']} hisse)")
+    print(f"   9:16 (Shorts/TikTok/Reel): {res['files']['vertical']}  ({c['cues_vertical']} hisse)")
+    if r["to_check"]:
+        print(f"   🔎 {len(r['to_check'])} alfaaz khud check karein (preview page par list hai), jaise:")
+        for w in r["to_check"][:5]:
+            print(f"      {w['time']:>6}s  {w['text']}  ({w['why']})")
+    if r["skipped"]:
+        print(f"   ⏭️ Script ke yeh alfaaz recording mein nahi mile (subtitle mein nahi): {' '.join(r['skipped'][:12])}")
+    print(f"   Agla qadam: python run.py subtitle-video {p.path.name}")
+    print("   (Ghalti ho to .srt file Notepad mein theek karein, phir subtitle-video dobara chalayein.)")
+    return 0
+
+
+def cmd_subtitle_video(a) -> int:
+    import json
+    from pathlib import Path
+
+    from pipeline.project import Project
+    from pipeline.subtitle_render import make_subtitle_video
+    from pipeline.subtitles import attach_word_times, read_srt
+    p = Project.open(a.project)
+    s = load_settings()["subtitles"]
+    sub_dir = p.path / "subtitles"
+    words_file = sub_dir / "words.json"
+    if not words_file.exists():
+        print(f"❌ Pehle subtitles banayein: python run.py subtitles {p.path.name}")
+        return 1
+    data = json.loads(words_file.read_text(encoding="utf-8"))
+    audio = p.processed_dir / data["report"]["audio"]
+    if not audio.exists():
+        print(f"❌ Awaaz ki file nahi mili: {audio}. Dobara: python run.py audio {p.path.name}")
+        return 1
+    bg = Path(a.background).expanduser().resolve() if a.background else None
+    if bg and not bg.exists():
+        print(f"❌ Background video nahi mili: {bg}")
+        return 1
+    highlight = s.get("highlight_words", True) and not a.no_highlight
+    formats = ["landscape", "vertical"] if a.format == "both" else [a.format]
+    srt_names = {"landscape": "urdu.srt", "vertical": "urdu_vertical.srt"}
+    out_names = {"landscape": "subtitles_16x9.mp4", "vertical": "subtitles_9x16.mp4"}
+    for fmt in formats:
+        cues = attach_word_times(read_srt(sub_dir / srt_names[fmt]), data["words"])
+        print(f"🎬 {fmt}: {len(cues)} subtitle hisse — tasveerein aur video ban rahi hain…")
+        out = make_subtitle_video(audio, cues, s[fmt], p.preview_dir / out_names[fmt],
+                                  p.path / "tmp" / f"subs_{fmt}", background=bg, highlight=highlight)
+        print(f"   ✅ {out}")
+    print(f"   Dekhne ke liye: python run.py preview {p.path.name} --serve")
+    return 0
+
+
 def cmd_font_test(a) -> int:
     from pathlib import Path
 
@@ -183,7 +286,7 @@ def main(argv: list[str] | None = None) -> int:
             stream.reconfigure(encoding="utf-8", errors="replace")
         except (AttributeError, ValueError):
             pass
-    ap = argparse.ArgumentParser(prog="run.py", description="Urdu video automation (Phase 1+2). Kuch bhi publish nahi karta.")
+    ap = argparse.ArgumentParser(prog="run.py", description="Urdu video automation (Phase 1-3). Kuch bhi publish nahi karta.")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("doctor", help="system check").set_defaults(fn=cmd_doctor)
@@ -229,6 +332,23 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--no-deesser", action="store_true")
     s.add_argument("--lufs", type=float, help="loudness target (default -14)")
     s.set_defaults(fn=cmd_audio)
+
+    s = sub.add_parser("subtitles", help="Phase 3: awaaz sun kar Urdu subtitles (.srt) banayein")
+    s.add_argument("project")
+    s.add_argument("--recording", help="kis recording ki saaf awaaz (default: aakhri)")
+    s.add_argument("--model", choices=["tiny", "base", "small", "medium", "large-v3"],
+                   help="Whisper model (default settings.json: medium)")
+    s.add_argument("--no-script", action="store_true", help="script se match na karein")
+    s.add_argument("--retranscribe", action="store_true", help="awaaz dobara sunein")
+    s.add_argument("--force", action="store_true", help="haath se edit ki hui .srt ko bhi naya banayein (backup ke saath)")
+    s.set_defaults(fn=cmd_subtitles)
+
+    s = sub.add_parser("subtitle-video", help="Phase 3: subtitles wali test video (16:9 + 9:16)")
+    s.add_argument("project")
+    s.add_argument("--format", choices=["both", "landscape", "vertical"], default="both")
+    s.add_argument("--background", help="apni video clip background ke liye (optional)")
+    s.add_argument("--no-highlight", action="store_true", help="bolta hua lafz peela na karein")
+    s.set_defaults(fn=cmd_subtitle_video)
 
     s = sub.add_parser("font-test", help="Urdu Nastaliq render test tasveer")
     s.add_argument("--out")
