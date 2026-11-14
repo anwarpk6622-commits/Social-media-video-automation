@@ -34,6 +34,7 @@
 | Video editing (trim, stabilization, color grade, transition, title, 9:16 + 16:9) | 4 | ✅ Tayyar (music baad mein) |
 | Platform-specific title, description, hashtags, thumbnails (YouTube, Shorts, Reels, TikTok) | 5 | ✅ Tayyar |
 | Publishing framework: jobs, dry-run, manzoori, fingerprints, retry, logs (koi asal upload nahi) | 6.1 | ✅ Tayyar |
+| YouTube integration (code + offline tests; asal login/upload aap ki alag manzoori se) | 6.2 | ✅ Code tayyar, live band |
 | Official publishing: YouTube → Facebook → TikTok (aap ki manzoori ke saath) | 6.2–6.4 | ⏳ Aap ki manzoori ka intezar |
 
 **Aap ki awaaz aur chehra kabhi nahi badle jaate.** Koi AI voice, koi voice cloning nahi.
@@ -287,7 +288,9 @@ Kya banta hai:
 | `python run.py thumbnail <project> [--time 21.5] [--text "..."]` | YouTube thumbnail + 9:16 cover |
 | `python run.py publish-plan / publish-check / publish-approve <project>` | Phase 6.1: publishing job, dry-run, manzoori |
 | `python run.py publish-status / publish-report <project>` | Jobs ki haalat aur report |
-| `python run.py publish-run <project> --simulate` | Offline nakal (asal upload Phase 6.1 mein band) |
+| `python run.py publish-run <project> --simulate` | Offline nakal |
+| `python run.py youtube-status / youtube-login / youtube-logout` | Phase 6.2: YouTube connection (sirf aap ke PC par) |
+| `python run.py publish-run <project> --platform youtube` | Asal PRIVATE upload — tamam switches + typed `UPLOAD youtube` ke baad hi |
 | `python run.py secret-scan` · `install-hooks` | Commit se pehle secrets ki jaanch |
 | `python run.py preview <project> [--serve]` | Preview page |
 | `python run.py font-test` | Urdu Nastaliq render test |
@@ -354,7 +357,8 @@ ek munasib doosra model istemal karti hai (server-side fallback) — us ki lagat
 - **Phase 4:** Cinematic editing — transitions, color grading, music ducking, sound effects
 - ~~**Phase 5:** title, description, hashtags, thumbnails~~ ✅ ho gaya
 - ~~**Phase 6.1:** publishing framework~~ ✅ ho gaya — tafseel: `publishers/README.md`
-- **Phase 6.2–6.4:** YouTube, Facebook Reels, TikTok ki official APIs — sirf aap ki manzoori ke baad
+- ~~**Phase 6.2:** YouTube integration code~~ ✅ (live band) — setup: `publishers/README.md`
+- **Phase 6.3–6.4:** Facebook Reels, TikTok — sirf aap ki manzoori ke baad
 
 ---
 
@@ -377,6 +381,6 @@ ek munasib doosra model istemal karti hai (server-side fallback) — us ki lagat
 ├── assets/                # fonts, music, sfx, luts, branding
 ├── models/                # Whisper AI model (khud download, GitHub par nahi)
 ├── projects/              # har video ka folder
-├── publishers/            # Phase 6 (abhi khaali)
+├── publishers/            # Phase 6: publishing framework + YouTube
 └── tests/                 # automated tests
 ```

@@ -29,6 +29,46 @@ def parse_schedule(value: str | None) -> str | None:
     return when.isoformat(timespec="minutes")
 
 
+def captions_for(project_root: Path, platform: str) -> str | None:
+    """YouTube captions that match the FINAL (trimmed) video.
+
+    subtitles/urdu*.srt follow the ORIGINAL recording; the edit trimmed the start
+    (edit.json trim.start), so uploading them as-is would put every caption early.
+    We shift them onto the edited timeline (read-only use of Phase 3/4 functions) and
+    write output/captions/<platform>.srt. Deterministic → same input, same fingerprint."""
+    if platform not in ("youtube", "youtube_shorts"):
+        return None
+    sub = project_root / "subtitles"
+    srt = sub / ("urdu.srt" if platform == "youtube" else "urdu_vertical.srt")
+    words_file = sub / "words.json"
+    if not srt.exists() or not words_file.exists():
+        return None
+    from pipeline.subtitles import attach_word_times, read_srt, write_srt
+    t0, total = 0.0, None
+    plan_file = project_root / "edit.json"
+    if plan_file.exists():
+        from pipeline.video_edit import _shift_cues
+        edit = json.loads(plan_file.read_text(encoding="utf-8"))
+        t0 = float((edit.get("trim") or {}).get("start") or 0)
+        end = (edit.get("trim") or {}).get("end") or edit.get("_source_duration")
+        total = (float(end) - t0) if end else None
+        words = json.loads(words_file.read_text(encoding="utf-8"))["words"]
+        cues = _shift_cues(attach_word_times(read_srt(srt), words), t0, total or 10 ** 6)
+    else:
+        cues = read_srt(srt)
+    if not cues:
+        return None
+    out = project_root / "output" / "captions" / f"{platform}.srt"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out.with_suffix(".tmp")
+    write_srt(cues, tmp, 42 if platform == "youtube" else 24)
+    if not out.exists() or out.read_bytes() != tmp.read_bytes():
+        tmp.replace(out)
+    else:
+        tmp.unlink()
+    return str(out.relative_to(project_root))
+
+
 def build_job(project_root: Path, platform: str, metadata: dict, privacy: str | None, schedule: str | None) -> Job:
     if platform not in PLATFORMS:
         raise PlanError(f"Na-maloom platform: {platform}. Mumkin: {', '.join(PLATFORMS)}")
@@ -40,6 +80,9 @@ def build_job(project_root: Path, platform: str, metadata: dict, privacy: str | 
     files = {"video": file_entry(project_root, m["video_file"])}
     if m.get("thumbnail_file"):
         files["thumbnail"] = file_entry(project_root, m["thumbnail_file"])
+    cap = captions_for(project_root, platform)
+    if cap:
+        files["captions"] = file_entry(project_root, cap)
     return Job(id=platform, project=project_root.name, platform=platform, privacy=privacy,
                schedule=parse_schedule(schedule), files=files, metadata=m, metadata_sha256=sha256_json(m))
 

@@ -1,0 +1,8 @@
+# Phase 6 publishing (apne computer par): manzoori ke dastakhat ki key OS keyring mein rehti hai
+# (Windows Credential Manager / macOS Keychain / Linux Secret Service).
+# Install: pip install -r requirements-publishing.txt
+keyring>=25,<26
+# YouTube (Phase 6.2) — Google ki official libraries (OAuth Google ke apne login page par hota hai)
+google-auth>=2.30,<3
+google-auth-oauthlib>=1.2,<2
+requests>=2.32,<3

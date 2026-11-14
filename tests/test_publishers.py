@@ -32,6 +32,7 @@ from publishers.runner import RunError, run_job  # noqa: E402
 from publishers.secret_scan import FORBIDDEN_FILES, scan, scan_text  # noqa: E402
 from publishers.secrets import DisabledStore, MemoryStore, SecretStoreDisabled, get_store, secret_key  # noqa: E402
 from publishers.store import JobStore  # noqa: E402
+from publishers.signing import Signer  # noqa: E402
 from publishers.validate import validate_and_store  # noqa: E402
 
 # Fake secrets are BUILT at runtime so the secret scanner never sees them as literals.
@@ -59,6 +60,19 @@ def tearDownModule():
 
 
 HAVE_FFMPEG = shutil.which("ffmpeg") is not None
+
+# Tests sign approvals with an in-memory key (the real signer needs the OS keyring).
+SIGNER = Signer(MemoryStore())
+
+
+def APPROVE(*a, **k):
+    k.setdefault("signer", SIGNER)
+    return ap.approve(*a, **k)
+
+
+def RUN(*a, **k):
+    k.setdefault("signer", SIGNER)
+    return run_job(*a, **k)
 NO_SLEEP = dict(sleep=lambda s: None, rng=random.Random(1))
 FAST = RetryPolicy(max_attempts=4, base_delay=0.01)
 
@@ -241,7 +255,7 @@ class TestWorkflow(Base):
     def approve_all(self, ids=None, extra=()):
         for jid in ids or [j.id for j in self.store.all()]:
             answers = iter(["APPROVE", *extra])
-            ap.approve(self.root, self.store, jid, input_fn=lambda _: next(answers))
+            APPROVE(self.root, self.store, jid, input_fn=lambda _: next(answers))
 
     def validated(self, platforms=None):
         make_plan(self.root, platforms)
@@ -271,7 +285,7 @@ class TestWorkflow(Base):
         self.validated()
         self.approve_all()
         for jid in ("youtube", "tiktok"):
-            run_job(self.root, self.store, jid, FakeAdapter(jid), simulate=True, policy=FAST, poll_interval=0, **NO_SLEEP)
+            RUN(self.root, self.store, jid, FakeAdapter(jid), simulate=True, policy=FAST, poll_interval=0, **NO_SLEEP)
         self.assertEqual(snap, {p: sha256_file(p) for p in snap})
 
     # ---- validation
@@ -305,10 +319,10 @@ class TestWorkflow(Base):
     def test_approval_needs_validation_and_exact_phrase(self):
         make_plan(self.root, ["youtube"])
         with self.assertRaises(ap.ApprovalError):
-            ap.approve(self.root, self.store, "youtube", input_fn=lambda _: "APPROVE")   # not validated yet
+            APPROVE(self.root, self.store, "youtube", input_fn=lambda _: "APPROVE")   # not validated yet
         validate_and_store(self.root, self.store, "youtube")
         with self.assertRaises(ap.ApprovalError):
-            ap.approve(self.root, self.store, "youtube", input_fn=lambda _: "approve")   # wrong case = no
+            APPROVE(self.root, self.store, "youtube", input_fn=lambda _: "approve")   # wrong case = no
         self.assertEqual(self.store.load("youtube").status, md.VALIDATED)
         self.approve_all(["youtube"])
         j = self.store.load("youtube")
@@ -320,7 +334,7 @@ class TestWorkflow(Base):
         validate_and_store(self.root, self.store, "youtube")
         answers = iter(["APPROVE", "yes"])
         with self.assertRaises(ap.ApprovalError):
-            ap.approve(self.root, self.store, "youtube", input_fn=lambda _: next(answers))
+            APPROVE(self.root, self.store, "youtube", input_fn=lambda _: next(answers))
         self.assertEqual(self.store.load("youtube").status, md.VALIDATED)
         self.approve_all(["youtube"], extra=["PUBLIC"])
         self.assertTrue(self.store.load("youtube").approval["public_confirmed"])
@@ -331,7 +345,7 @@ class TestWorkflow(Base):
         _ff("-f", "lavfi", "-i", "testsrc=s=540x960:r=30:d=3", "-c:v", "libx264", "-pix_fmt", "yuv420p",
             str(self.root / "output" / "final_9x16.mp4"))
         with self.assertRaises(RunError):
-            run_job(self.root, self.store, "tiktok", FakeAdapter("tiktok"), simulate=False, policy=FAST, **NO_SLEEP)
+            RUN(self.root, self.store, "tiktok", FakeAdapter("tiktok"), simulate=False, policy=FAST, **NO_SLEEP)
         j = self.store.load("tiktok")
         self.assertEqual(j.status, md.PENDING)
         self.assertFalse(j.approval)
@@ -354,12 +368,12 @@ class TestWorkflow(Base):
         self.validated(["youtube"])
         self.approve_all(["youtube"])
         fa = FakeAdapter("youtube", failures=["transient", None, "rate_limit"], chunk_size=64 * 1024)
-        j = run_job(self.root, self.store, "youtube", fa, simulate=False, policy=FAST, poll_interval=0, **NO_SLEEP)
+        j = RUN(self.root, self.store, "youtube", fa, simulate=False, policy=FAST, poll_interval=0, **NO_SLEEP)
         self.assertEqual(j.status, md.COMPLETED)
         self.assertEqual(fa.received.hexdigest(), sha256_file(self.root / "output" / "final_16x9.mp4"))
         self.assertEqual(j.upload["retries"], 2)
         fa2 = FakeAdapter("youtube")
-        j2 = run_job(self.root, self.store, "youtube", fa2, simulate=False, policy=FAST, **NO_SLEEP)
+        j2 = RUN(self.root, self.store, "youtube", fa2, simulate=False, policy=FAST, **NO_SLEEP)
         self.assertEqual(j2.status, md.COMPLETED)
         self.assertEqual((fa2.calls, fa2.finished), (0, 0), "a completed job must never upload again")
         events = [r["event"] for r in PublishLog(self.root).read("youtube")]
@@ -370,7 +384,7 @@ class TestWorkflow(Base):
         self.validated(["tiktok"])
         self.approve_all(["tiktok"])
         fa = FakeAdapter("tiktok", failures=["fatal"])
-        j = run_job(self.root, self.store, "tiktok", fa, simulate=False, policy=FAST, **NO_SLEEP)
+        j = RUN(self.root, self.store, "tiktok", fa, simulate=False, policy=FAST, **NO_SLEEP)
         self.assertEqual(j.status, md.FAILED)
         self.assertEqual(fa.calls, 1)
         self.assertEqual(j.error["type"], "FatalError")
@@ -382,13 +396,13 @@ class TestWorkflow(Base):
         chunk = 32 * 1024
         fa = FakeAdapter("facebook_reels", failures=[None, None, "crash"], chunk_size=chunk)
         with self.assertRaises(KeyboardInterrupt):
-            run_job(self.root, self.store, "facebook_reels", fa, simulate=False, policy=FAST, **NO_SLEEP)
+            RUN(self.root, self.store, "facebook_reels", fa, simulate=False, policy=FAST, **NO_SLEEP)
         j = self.store.load("facebook_reels")
         self.assertEqual(j.status, md.UPLOADING)
         self.assertEqual(j.upload["bytes_sent"], 2 * chunk)
         self.assertTrue((self.root / "publish" / "private" / "facebook_reels.json").exists())
         fa2 = FakeAdapter("facebook_reels", chunk_size=chunk)
-        j = run_job(self.root, self.store, "facebook_reels", fa2, simulate=False, policy=FAST, poll_interval=0, **NO_SLEEP)
+        j = RUN(self.root, self.store, "facebook_reels", fa2, simulate=False, policy=FAST, poll_interval=0, **NO_SLEEP)
         self.assertEqual(j.status, md.COMPLETED)
         remaining = -(-(size - 2 * chunk) // chunk)
         self.assertEqual(fa2.calls, remaining, "resume must not resend already confirmed chunks")
@@ -398,10 +412,10 @@ class TestWorkflow(Base):
     def test_failed_job_can_retry_with_same_approval(self):
         self.validated(["youtube_shorts"])
         self.approve_all(["youtube_shorts"])
-        run_job(self.root, self.store, "youtube_shorts", FakeAdapter("youtube_shorts", failures=["fatal"]),
+        RUN(self.root, self.store, "youtube_shorts", FakeAdapter("youtube_shorts", failures=["fatal"]),
                 simulate=False, policy=FAST, **NO_SLEEP)
         self.assertEqual(self.store.load("youtube_shorts").status, md.FAILED)
-        j = run_job(self.root, self.store, "youtube_shorts", FakeAdapter("youtube_shorts"), simulate=False,
+        j = RUN(self.root, self.store, "youtube_shorts", FakeAdapter("youtube_shorts"), simulate=False,
                     policy=FAST, poll_interval=0, **NO_SLEEP)
         self.assertEqual(j.status, md.COMPLETED)
         self.assertEqual([h["to"] for h in j.history][-4:], ["approved", "uploading", "processing", "completed"])
@@ -410,7 +424,7 @@ class TestWorkflow(Base):
         self.validated(["tiktok"])
         self.approve_all(["tiktok"])
         before = (self.root / "publish" / "jobs" / "tiktok.json").read_bytes()
-        sim = run_job(self.root, self.store, "tiktok", FakeAdapter("tiktok"), simulate=True, policy=FAST,
+        sim = RUN(self.root, self.store, "tiktok", FakeAdapter("tiktok"), simulate=True, policy=FAST,
                       poll_interval=0, **NO_SLEEP)
         self.assertEqual(sim.status, md.COMPLETED)
         self.assertEqual((self.root / "publish" / "jobs" / "tiktok.json").read_bytes(), before)
@@ -426,7 +440,7 @@ class TestWorkflow(Base):
         class OnlineAdapter(PlatformAdapter):
             offline = False
         with self.assertRaises(RunError):
-            run_job(self.root, self.store, "youtube", OnlineAdapter(), simulate=False, live_enabled=False, **NO_SLEEP)
+            RUN(self.root, self.store, "youtube", OnlineAdapter(), simulate=False, live_enabled=False, **NO_SLEEP)
         self.assertEqual(self.store.load("youtube").status, md.APPROVED)
 
     def test_job_files_contain_no_secrets(self):
@@ -452,13 +466,28 @@ class TestCLI(Base):
                                   text=True, cwd=ROOT)
         self.assertEqual(cli("publish-plan", env_proj).returncode, 0)
         self.assertEqual(cli("publish-check", env_proj).returncode, 0)
+        # Without a working OS keyring the CLI must FAIL CLOSED: no approval, nothing changes.
+        from publishers.signing import SigningUnavailable, get_signer
+        try:
+            get_signer()
+            have_keyring = True
+        except SigningUnavailable:
+            have_keyring = False
         r = cli("publish-approve", env_proj, "--platform", "tiktok", stdin="APPROVE\n")
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        if not have_keyring:
+            self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+            self.assertIn("sign nahi ho sakti", r.stdout)
+            self.assertEqual(JobStore(root).load("tiktok").status, md.VALIDATED)
+            # approve in-process with the test signer so the remaining CLI steps can be exercised
+            APPROVE(root, JobStore(root), "tiktok", input_fn=lambda _: "APPROVE")
         r = cli("publish-run", env_proj)
         self.assertEqual(r.returncode, 1)
         self.assertIn("band", r.stdout)
         r = cli("publish-run", env_proj, "--simulate", "--platform", "tiktok", "--fail", "transient")
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        if not have_keyring:
+            # the CLI cannot verify the signature without the keyring → refuses, changes nothing
+            self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+            self.assertIn("dastakhat", r.stdout)
         self.assertEqual(JobStore(root).load("tiktok").status, md.APPROVED)
         self.assertEqual(cli("publish-status", env_proj).returncode, 0)
         self.assertEqual(cli("publish-report", env_proj).returncode, 0)

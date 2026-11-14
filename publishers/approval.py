@@ -15,7 +15,7 @@ from typing import Callable
 
 from .fingerprint import approved_fingerprints, current_fingerprints, differences
 from .log import PublishLog
-from .models import APPROVED, FAILED, PENDING, VALIDATED, Job, now
+from .models import APPROVED, FAILED, PENDING, UPLOADING, VALIDATED, Job, now
 
 APPROVE_WORD = "APPROVE"
 PUBLIC_WORD = "PUBLIC"
@@ -46,8 +46,25 @@ def summary(job: Job) -> str:
     return "\n".join(lines)
 
 
-def approve(project_root: Path, store, job_id: str, *, input_fn: Callable[[str], str] = input) -> Job:
+def _signer(signer):
+    from .signing import SigningUnavailable, get_signer
+    if signer is not None:
+        return signer
+    try:
+        return get_signer()
+    except SigningUnavailable as e:
+        raise ApprovalError(f"Manzoori sign nahi ho sakti: {e}") from None
+
+
+def approve(project_root: Path, store, job_id: str, *, input_fn: Callable[[str], str] = input, signer=None) -> Job:
+    from .signing import SigningUnavailable
     log = PublishLog(project_root)
+    signer = _signer(signer)
+    try:
+        signer.ensure_key()            # keyring problems surface BEFORE the user types anything
+    except SigningUnavailable as e:
+        log.write("approval_blocked_keyring", job_id, reason=str(e))
+        raise ApprovalError(f"Manzoori sign nahi ho sakti: {e}") from None
     with store.lock(job_id):
         job = store.load(job_id)
         if job.status != VALIDATED or not (job.validation or {}).get("ok"):
@@ -66,28 +83,49 @@ def approve(project_root: Path, store, job_id: str, *, input_fn: Callable[[str],
                 log.write("approval_declined", job_id, reason="public not confirmed")
                 raise ApprovalError("Public tasdeeq nahi hui. Manzoori nahi di gayi.")
             public_ok = True
-        job.approval = {"time": now(), "by": _who(), "method": "typed-phrase",
-                        "fingerprints": approved_fingerprints(job), "privacy": job.privacy,
-                        "public_confirmed": public_ok, "schedule": job.schedule}
-        job.move(APPROVED, "user ne manzoori di")
+        approval = {"time": now(), "by": _who(), "method": "typed-phrase",
+                    "fingerprints": approved_fingerprints(job), "privacy": job.privacy,
+                    "public_confirmed": public_ok, "schedule": job.schedule}
+        try:
+            approval.update(signer.sign(job, approval))       # HMAC with the keyring-only key
+        except SigningUnavailable as e:
+            log.write("approval_blocked_keyring", job_id, reason=str(e))
+            raise ApprovalError(f"Manzoori sign nahi ho saki — kuch nahi badla: {e}") from None
+        job.approval = approval
+        job.move(APPROVED, "user ne manzoori di (signed)")
         store.save(job)
         log.write("job_approved", job_id, privacy=job.privacy, public_confirmed=public_ok,
                   fingerprints=job.approval["fingerprints"])
     return job
 
 
-def verify_or_revoke(project_root: Path, store, job: Job) -> list[str]:
-    """Check the approved fingerprints against the files NOW. On any change the
-    approval is revoked (job → pending) and the differences are returned."""
+def check_approval(project_root: Path, job: Job, signer) -> list[str]:
+    """Problems with the approval right now (empty list = valid). Never changes anything.
+
+    Raises SigningUnavailable if the signing key cannot be read — the caller must STOP
+    (not revoke): a locked keyring is not proof of tampering."""
     if not job.approval:
         return ["koi manzoori nahi"]
-    diff = differences(job.approval["fingerprints"], current_fingerprints(project_root, job))
+    diff = differences(job.approval.get("fingerprints") or {}, current_fingerprints(project_root, job))
     if job.is_public and not job.approval.get("public_confirmed"):
         diff.append("public tasdeeq mojood nahi")
+    ok, reason = signer.verify(job)
+    if not ok:
+        diff.append(reason)
+    return diff
+
+
+def verify_or_revoke(project_root: Path, store, job: Job, signer=None) -> list[str]:
+    """Check the approval (files, metadata, privacy, schedule, SIGNATURE) NOW. On any
+    problem the approval is revoked (job → pending) and the reasons are returned."""
+    diff = check_approval(project_root, job, _signer(signer))
     if diff:
         revoked = dict(job.approval, revoked=now(), reasons=diff)
         job.approval = {}
         job.validation = {}
+        if job.status == UPLOADING:                 # interrupted upload: the old session is no longer trusted
+            job.move(FAILED, "manzoori radd (adhoora upload)")
+            store.clear_private(job.id)
         if job.status in (APPROVED, FAILED):
             job.move(PENDING, "manzoori radd: " + "; ".join(diff))
         job.error = {"time": now(), "type": "approval_revoked", "detail": diff, "previous_approval": revoked}

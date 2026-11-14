@@ -48,7 +48,9 @@ class FakeAdapter(PlatformAdapter):
     offline = True
 
     def __init__(self, platform: str, *, failures: list | None = None, processing_polls: int = 2,
-                 final_status: str = "completed", chunk_size: int = 256 * 1024, seed: int = 7):
+                 final_status: str = "completed", chunk_size: int = 256 * 1024, seed: int = 7,
+                 on_chunk=None):
+        self.on_chunk = on_chunk          # tests: callback(call_number) after each accepted chunk
         self.platform = platform
         self.failures = list(failures or [])
         self.processing_polls = processing_polls
@@ -80,6 +82,8 @@ class FakeAdapter(PlatformAdapter):
             self.received_bytes = offset
         self.received.update(data)
         self.received_bytes += len(data)
+        if self.on_chunk:
+            self.on_chunk(self.calls)
         return offset + len(data)
 
     def finish(self, job: Job, session: dict) -> dict:

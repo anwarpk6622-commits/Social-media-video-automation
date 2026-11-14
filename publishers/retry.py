@@ -37,6 +37,11 @@ class RetryExhausted(Exception):
     pass
 
 
+class SessionLost(FatalError):
+    """The platform forgot the upload session (e.g. YouTube 404), or the server holds bytes we
+    cannot prove were the approved bytes. The upload must restart from byte 0 in a NEW session."""
+
+
 @dataclass
 class RetryPolicy:
     max_attempts: int = 5
@@ -76,19 +81,62 @@ class ChunkSender:
         raise NotImplementedError
 
 
+def _range_digest(path: Path, offset: int, length: int) -> str:
+    import hashlib
+    with open(path, "rb") as f:
+        f.seek(offset)
+        return hashlib.sha256(f.read(length)).hexdigest()
+
+
+def verify_sent(path: Path, state: dict) -> None:
+    """Security fix 2: prove that every byte already SENT equals the approved file.
+
+    1) the whole file on disk must still match the approved SHA-256, and
+    2) every confirmed range must hash to exactly what was sent.
+    Together this catches a file that changed mid-upload — even if it was changed
+    back afterwards."""
+    from .fingerprint import sha256_file
+    if not state.get("sha256"):
+        raise FatalError("Approved fingerprint mojood nahi — upload roka gaya.")
+    if sha256_file(path) != state["sha256"]:
+        raise FatalError("File manzoori ke baad badal gayi — upload roka gaya.")
+    for r in state.get("sent_ranges", []):
+        if _range_digest(path, r["offset"], r["length"]) != r["sha256"]:
+            raise FatalError(f"Upload ke dauran bheja gaya hissa (byte {r['offset']}) manzoor shuda file se "
+                             "mukhtalif tha — upload roka gaya.")
+
+
 def resumable_upload(path: Path, sender: ChunkSender, *, state: dict, save_state: Callable[[dict], None],
                      policy: RetryPolicy, chunk_size: int = 8 * 1024 * 1024,
                      sleep: Callable[[float], None] = time.sleep, rng: random.Random | None = None,
                      on_event: Callable[..., None] | None = None) -> dict:
     """Upload `path` in chunks, resuming from state['bytes_sent'].
 
-    `state` must hold 'sha256' of the approved file; `save_state` persists progress."""
-    from .fingerprint import sha256_file
+    `state` must hold 'sha256' of the approved file; `save_state` persists progress.
+    Every confirmed chunk's own SHA-256 is recorded in state['sent_ranges'] and checked
+    again (verify_sent) on resume and before the caller may call finish()."""
+    import hashlib
 
     total = path.stat().st_size
-    if state.get("sha256") and sha256_file(path) != state["sha256"]:
-        raise FatalError("File approval ke baad badal gayi — upload roka gaya.")
+    verify_sent(path, state)            # whole file + anything sent before a crash
     offset = int(state.get("bytes_sent", 0))
+    sync = getattr(sender, "sync_offset", None)
+    if offset and callable(sync):
+        # After a crash the SERVER is the truth: ask how many bytes it really has.
+        server = retry_call(lambda: sync(state.setdefault("session", {}), total), policy, sleep=sleep, rng=rng)
+        if server > offset:
+            # bytes the server got but we never recorded → cannot prove they were the approved
+            # bytes → never continue on unverifiable data: restart in a new session
+            raise SessionLost(f"Server ke paas {server} bytes, record mein {offset} — tasdeeq na hone ki wajah se "
+                              "upload naye session mein shuru se hoga.")
+        if server < offset:
+            if any(r["offset"] < server < r["offset"] + r["length"] for r in state.get("sent_ranges", [])):
+                raise SessionLost("Server ki hadd ek record shuda tukde ke beech mein — tasdeeq ke liye upload "
+                                  "naye session mein shuru se hoga.")
+            state["sent_ranges"] = [r for r in state.get("sent_ranges", []) if r["offset"] + r["length"] <= server]
+            offset = server
+            state["bytes_sent"] = offset
+            save_state(state)
     if offset and on_event:
         on_event("upload_resumed", offset=offset, total=total)
     with open(path, "rb") as f:
@@ -107,9 +155,23 @@ def resumable_upload(path: Path, sender: ChunkSender, *, state: dict, save_state
             new_offset = retry_call(attempt, policy, on_retry=note, sleep=sleep, rng=rng)
             if not (offset < new_offset <= total):
                 raise FatalError(f"Server ne ghalat offset bataya ({new_offset}).")
+            confirmed = data[: new_offset - offset]          # what the server actually has
+            state.setdefault("sent_ranges", []).append(
+                {"offset": offset, "length": len(confirmed), "sha256": hashlib.sha256(confirmed).hexdigest()})
             offset = new_offset
             state["bytes_sent"] = offset
             save_state(state)   # progress survives crashes
             if on_event:
                 on_event("upload_progress", bytes_sent=offset, total=total)
+    verify_sent(path, state)            # nothing may be finished unless every sent byte is the approved byte
+    if path.stat().st_size != total or offset != total:
+        raise FatalError("Upload ke dauran file ka size badal gaya — upload roka gaya.")
+    # every byte the server holds must be covered by a verified range: 0 … total, no gaps
+    pos = 0
+    for r in sorted(state.get("sent_ranges", []), key=lambda r: r["offset"]):
+        if r["offset"] != pos:
+            raise FatalError(f"Byte {pos} se {r['offset']} tak ki tasdeeq ka record nahi — upload roka gaya.")
+        pos += r["length"]
+    if pos != total:
+        raise FatalError("Bheje gaye bytes ka record poori file ko nahi dhaanpta — upload roka gaya.")
     return state

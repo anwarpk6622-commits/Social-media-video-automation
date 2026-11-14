@@ -524,9 +524,7 @@ def cmd_publish_run(a) -> int:
     p, store = _pub(a.project)
     live = bool(load_settings()["publishing"].get("live_enabled", False))
     if not a.simulate:
-        print("⛔ Asal publishing Phase 6.1 mein band hai. Sirf simulation: python run.py publish-run "
-              f"{p.path.name} --simulate")
-        return 1
+        return _publish_live(p, store, a)
     failures = [x for x in (a.fail or "").split(",") if x]
     rc = 0
     print("🧪 SIMULATION — internet istemal nahi hota, asal job ki haalat nahi badalti.")
@@ -545,6 +543,111 @@ def cmd_publish_run(a) -> int:
             rc = 1
     print("   Asal jobs ki haalat: python run.py publish-status " + p.path.name)
     return rc
+
+
+def _publish_live(p, store, a) -> int:
+    """Phase 6.2: REAL upload — YouTube only, behind every guard + separate typed confirmation."""
+    from publishers.guard import GuardError, check_live, load_config
+    from publishers.retry import FatalError
+    from publishers.runner import RunError, run_job
+    from publishers.youtube import get_live_adapter
+    from publishers.guard import settings_live_enabled
+    if not (load_config().get("live_enabled") is True and settings_live_enabled()):
+        print("⛔ Asal publishing band hai (live_enabled = false). Kuch upload nahi hua.")
+        return 1
+    ids = _pub_ids(store, a.platform)
+    if len(ids) != 1:
+        print("⛔ Asal upload ek waqt mein sirf EK job: --platform youtube  ya  --platform youtube_shorts")
+        return 1
+    jid = ids[0]
+    job = store.load(jid)
+    try:
+        check_live(job, load_config())          # master switch, platform switch, hard blocks, private-only
+        adapter = get_live_adapter(job.platform, p.path)
+    except (GuardError, FatalError, RuntimeError) as e:
+        print(f"{e}\n   (Kuch upload nahi hua.)")
+        return 1
+    try:
+        job = run_job(p.path, store, jid, adapter, simulate=False, confirm_fn=input)
+    except RunError as e:
+        print(f"{e}\n   (Kuch upload nahi hua.)")
+        return 1
+    print(f"   {jid} → {job.status}  {job.upload.get('url') or ''}  {job.error.get('message', '') if job.error else ''}")
+    return 0 if job.status in ("completed", "processing") else 1
+
+
+def cmd_youtube_login(a) -> int:
+    import json
+
+    from pipeline.config import ROOT
+    from publishers.secrets import KeyringUnavailable, secure_store
+    from publishers.youtube import login, scopes
+    ycfg = json.loads((ROOT / "config" / "publishing.json").read_text(encoding="utf-8")).get("youtube", {})
+    try:
+        store = secure_store()
+    except KeyringUnavailable as e:
+        print(f"⛔ {e}\n   Login token sirf OS keyring mein rakha jaata hai — is ke baghair login nahi hoga.")
+        return 1
+    cap = bool(ycfg.get("upload_captions", True))
+    print("🔐 YouTube login — Google ka OFFICIAL page browser mein khulega. Password sirf wahin (accounts.google.com) likhein.")
+    print("   Maangi jaane wali ijazatein:")
+    for s in scopes(cap):
+        print(f"     • {s}")
+    if input("   Aage barhne ke liye 'LOGIN' likhein: ").strip() != "LOGIN":
+        print("❎ Login cancel.")
+        return 0
+    info = login(ROOT / ycfg.get("client_secrets_file", "secrets/youtube_client_secret.json"), store,
+                 ycfg.get("account", "default"), captions=cap)
+    print(f"✅ Login mukammal. Token OS keyring mein mehfooz (kabhi file ya log mein nahi). Ijazatein: {len(info['scopes'])}")
+    return 0
+
+
+def cmd_youtube_logout(_a) -> int:
+    import json
+
+    from pipeline.config import ROOT
+    from publishers.secrets import KeyringUnavailable, secure_store
+    from publishers.youtube import logout
+    ycfg = json.loads((ROOT / "config" / "publishing.json").read_text(encoding="utf-8")).get("youtube", {})
+    try:
+        removed = logout(secure_store(), ycfg.get("account", "default"))
+    except KeyringUnavailable as e:
+        print(f"⛔ {e}")
+        return 1
+    print("✅ YouTube token hata diya aur Google se revoke ki darkhwast bheji." if removed else "ℹ️ Koi YouTube login mojood nahi tha.")
+    return 0
+
+
+def cmd_youtube_status(_a) -> int:
+    import json
+
+    from pipeline.config import ROOT
+    from publishers.guard import HARD_BLOCKED, load_config, settings_live_enabled
+    from publishers.secrets import KeyringUnavailable, secure_store
+    from publishers.signing import SigningUnavailable, get_signer
+    from publishers.youtube import credentials_key
+    cfg = load_config()
+    ycfg = json.loads((ROOT / "config" / "publishing.json").read_text(encoding="utf-8")).get("youtube", {})
+    print("📺 YouTube publishing — haalat (koi secret nahi dikhaya jaata)")
+    print(f"   Master switch (config/publishing.json): {'ON' if cfg['live_enabled'] else 'OFF'}  ·  "
+          f"settings.json: {'ON' if settings_live_enabled() else 'OFF'}")
+    for plat, on in cfg["platforms_live"].items():
+        tag = "  (code mein band)" if plat in HARD_BLOCKED else ""
+        print(f"   {plat:15} switch: {'ON' if on else 'OFF'}{tag}")
+    print(f"   private_only: {'ON' if cfg['private_only'] else 'OFF'}")
+    try:
+        store = secure_store()
+        print("   OS keyring: ✅ mojood")
+        print(f"   YouTube login: {'✅ hai' if store.get(credentials_key(ycfg.get('account', 'default'))) else '— nahi'}")
+    except KeyringUnavailable as e:
+        print(f"   OS keyring: ⛔ {e}")
+    try:
+        print(f"   Approval signing key: ✅ id {get_signer().ensure_key()}")
+    except SigningUnavailable as e:
+        print(f"   Approval signing key: ⛔ {e}")
+    cs = ROOT / ycfg.get("client_secrets_file", "secrets/youtube_client_secret.json")
+    print(f"   OAuth client file: {'✅ mojood' if cs.is_file() else '— nahi (' + str(cs.relative_to(ROOT)) + ')'}")
+    return 0
 
 
 def cmd_publish_report(a) -> int:
@@ -767,6 +870,11 @@ def main(argv: list[str] | None = None) -> int:
     s.set_defaults(fn=cmd_secret_scan)
 
     sub.add_parser("install-hooks", help="har commit se pehle khud secret scan").set_defaults(fn=cmd_install_hooks)
+
+    sub.add_parser("youtube-login", help="Phase 6.2: Google ke official page se login (token sirf OS keyring mein)") \
+        .set_defaults(fn=cmd_youtube_login)
+    sub.add_parser("youtube-logout", help="Phase 6.2: YouTube token hatayein + revoke").set_defaults(fn=cmd_youtube_logout)
+    sub.add_parser("youtube-status", help="Phase 6.2: switches, keyring, login ki haalat").set_defaults(fn=cmd_youtube_status)
 
     s = sub.add_parser("font-test", help="Urdu Nastaliq render test tasveer")
     s.add_argument("--out")

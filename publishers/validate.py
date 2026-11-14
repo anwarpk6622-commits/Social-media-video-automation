@@ -176,6 +176,13 @@ def validate_job(project_root: Path, job: Job) -> dict:
             e, w = check_thumbnail(project_root / job.files["thumbnail"]["path"], job.platform)
             errors += e
             warnings += w
+        if "captions" in job.files:
+            cp = project_root / job.files["captions"]["path"]
+            txt = cp.read_text(encoding="utf-8", errors="replace")
+            if cp.stat().st_size > 100 * 1024 * 1024:
+                errors.append("Captions file 100 MB se bari")
+            elif "-->" not in txt:
+                errors.append("Captions file SRT nahi lagti")
     e, w = check_metadata(job)
     errors += e
     warnings += w

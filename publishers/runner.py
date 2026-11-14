@@ -25,7 +25,7 @@ from .approval import verify_or_revoke
 from .log import PublishLog
 from .models import APPROVED, COMPLETED, FAILED, PROCESSING, UPLOADING, Job, now
 from .redact import redact
-from .retry import FatalError, RetryExhausted, RetryPolicy, TransientError, resumable_upload, retry_call
+from .retry import FatalError, RetryExhausted, RetryPolicy, SessionLost, TransientError, resumable_upload, retry_call
 
 
 class RunError(RuntimeError):
@@ -55,9 +55,19 @@ class _SimStore:
 def run_job(project_root: Path, store, job_id: str, adapter: PlatformAdapter, *, simulate: bool,
             live_enabled: bool = False, policy: RetryPolicy | None = None,
             sleep: Callable[[float], None] = time.sleep, rng: random.Random | None = None,
-            poll_interval: float = 5.0, max_polls: int = 120) -> Job:
-    if not simulate and not live_enabled and not adapter.offline:
-        raise RunError("Asal publishing band hai (Phase 6.1).")
+            poll_interval: float = 5.0, max_polls: int = 120, signer=None,
+            confirm_fn: Callable[[str], str] | None = None, guard_cfg: dict | None = None,
+            settings_live: bool | None = None) -> Job:
+    """`live_enabled` is kept for backward compatibility; real uploads are decided by guard.py."""
+    from .guard import GuardError, check_live, confirm_upload
+    from .signing import SigningUnavailable, get_signer
+    if simulate and not adapter.offline:
+        raise RunError("Simulation sirf offline adapter ke saath ho sakti hai.")
+    if signer is None:
+        try:
+            signer = get_signer()
+        except SigningUnavailable as e:
+            raise RunError(f"Manzoori ka dastakhat check nahi ho sakta — kuch nahi chala: {e}") from None
     policy = policy or RetryPolicy()
     log = PublishLog(project_root)
     tag = "sim_" if simulate else ""
@@ -75,10 +85,30 @@ def run_job(project_root: Path, store, job_id: str, adapter: PlatformAdapter, *,
         if real.status == FAILED and not real.approval:
             raise RunError(f"'{job_id}' nakaam hua tha aur manzoori mojood nahi — dobara plan/check/approve.")
 
-        # Approval must still match the files exactly (checked on the REAL job).
-        diff = verify_or_revoke(project_root, store, real) if not simulate else _diff_only(project_root, real)
+        # Real (network) uploads: every guard BEFORE any state change or adapter call.
+        if not adapter.offline:
+            try:
+                check_live(real, guard_cfg, settings_live=settings_live)
+            except GuardError as e:
+                log.write("run_blocked_guard", real.id, reason=str(e))
+                raise RunError(str(e)) from None
+
+        # Approval must still match the files exactly AND carry a valid signature.
+        try:
+            diff = verify_or_revoke(project_root, store, real, signer) if not simulate else _diff_only(project_root, real, signer)
+        except SigningUnavailable as e:
+            log.write("run_blocked_keyring", real.id, reason=str(e))
+            raise RunError(f"Signing key nahi mili — kuch nahi chala, manzoori bhi nahi chhedi gayi: {e}") from None
         if diff:
             raise RunError("Manzoori radd: " + "; ".join(diff))
+
+        if not adapter.offline:
+            try:
+                confirm_upload(project_root, real, confirm_fn)   # separate typed UPLOAD <job-id>
+            except GuardError as e:
+                log.write("run_not_confirmed", real.id)
+                raise RunError(str(e)) from None
+            log.write("upload_confirmed_by_user", real.id, privacy=real.privacy)
 
         job = copy.deepcopy(real) if simulate else real
         jstore = _SimStore(job) if simulate else store
@@ -95,23 +125,34 @@ def run_job(project_root: Path, store, job_id: str, adapter: PlatformAdapter, *,
 
             if job.status == UPLOADING and not job.upload.get("remote_id"):
                 video = project_root / job.files["video"]["path"]
-                state = jstore.load_private(job.id) or {}
-                state.setdefault("sha256", job.approval["fingerprints"]["files"]["video"])
-                if not state.get("session"):
-                    state["session"] = retry_call(lambda: adapter.start(job), policy, sleep=sleep, rng=rng)
-                    jstore.save_private(job.id, state)
+                for restart in range(2):                     # at most ONE fresh restart per run
+                    state = jstore.load_private(job.id) or {}
+                    state.setdefault("sha256", job.approval["fingerprints"]["files"]["video"])
+                    if not state.get("session"):
+                        state["session"] = retry_call(lambda: adapter.start(job), policy, sleep=sleep, rng=rng)
+                        jstore.save_private(job.id, state)
 
-                def save_state(st):
-                    jstore.save_private(job.id, st)
-                    job.upload["bytes_sent"] = st.get("bytes_sent", 0)
-                    job.upload["retries"] = st.get("retries", 0)
-                    jstore.save(job)
+                    def save_state(st):
+                        jstore.save_private(job.id, st)
+                        job.upload["bytes_sent"] = st.get("bytes_sent", 0)
+                        job.upload["retries"] = st.get("retries", 0)
+                        jstore.save(job)
 
-                resumable_upload(video, adapter, state=state, save_state=save_state, policy=policy,
-                                 chunk_size=adapter.chunk_size, sleep=sleep, rng=rng,
-                                 on_event=lambda name, **d: event(name, job, **d))
+                    try:
+                        resumable_upload(video, adapter, state=state, save_state=save_state, policy=policy,
+                                         chunk_size=adapter.chunk_size, sleep=sleep, rng=rng,
+                                         on_event=lambda name, **d: event(name, job, **d))
+                        break
+                    except SessionLost as e:
+                        jstore.clear_private(job.id)         # forget the old session + progress
+                        job.upload["bytes_sent"] = 0
+                        jstore.save(job)
+                        event("upload_restarted", job, reason=str(e))
+                        if restart:
+                            raise
                 done = retry_call(lambda: adapter.finish(job, state.get("session", {})), policy, sleep=sleep, rng=rng)
-                job.upload.update({"remote_id": done["remote_id"], "url": done.get("url"), "uploaded": now()})
+                job.upload.update({"remote_id": done["remote_id"], "url": done.get("url"), "uploaded": now(),
+                                   "extras": done.get("extras") or {}})
                 jstore.clear_private(job.id)          # session data is no longer needed
                 job.move(PROCESSING, "upload mukammal, platform processing")
                 jstore.save(job)
@@ -145,14 +186,10 @@ def run_job(project_root: Path, store, job_id: str, adapter: PlatformAdapter, *,
         return job
 
 
-def _diff_only(project_root: Path, job: Job) -> list[str]:
-    from .fingerprint import current_fingerprints, differences
-    if not job.approval:
-        return ["koi manzoori nahi"]
-    d = differences(job.approval["fingerprints"], current_fingerprints(project_root, job))
-    if job.is_public and not job.approval.get("public_confirmed"):
-        d.append("public tasdeeq mojood nahi")
-    return d
+def _diff_only(project_root: Path, job: Job, signer) -> list[str]:
+    """Same checks as verify_or_revoke (incl. signature) but changes nothing (simulations)."""
+    from .approval import check_approval
+    return check_approval(project_root, job, signer)
 
 
 def _save_simulation(project_root: Path, job: Job) -> None:

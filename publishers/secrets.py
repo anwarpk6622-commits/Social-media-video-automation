@@ -101,6 +101,30 @@ def secret_key(platform: str, account: str = "default", kind: str = "oauth") -> 
     return f"{SERVICE}/{platform}/{account}/{kind}"
 
 
+class KeyringUnavailable(RuntimeError):
+    pass
+
+
+def secure_store() -> SecretStore:
+    """The OS secure store (Windows Credential Manager / macOS Keychain / Secret Service).
+
+    Fails closed: no `keyring` package, or only keyring's insecure/'fail' backend → error.
+    There is NO fallback to files or environment variables."""
+    try:
+        import keyring
+    except ImportError:
+        raise KeyringUnavailable("Secure keyring install nahi: pip install -r requirements-publishing.txt") from None
+    try:
+        backend = keyring.get_keyring()
+    except Exception as e:
+        raise KeyringUnavailable(f"OS keyring khul nahi saka ({type(e).__name__}).") from None
+    mod = type(backend).__module__.lower()
+    if any(bad in mod for bad in ("fail", "null", "plaintext", "keyrings.alt")):
+        raise KeyringUnavailable("Is computer par mehfooz OS keyring nahi mila (Windows Credential Manager / "
+                                 "macOS Keychain / Secret Service).")
+    return KeyringStore()
+
+
 def get_store(live_enabled: bool = False) -> SecretStore:
     if not live_enabled:
         return DisabledStore()

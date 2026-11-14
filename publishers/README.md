@@ -48,3 +48,30 @@ publish/simulations/           simulation natije (gitignored)
 `adapters.PlatformAdapter` ke 4 methods: `start` (upload session), `send_chunk` (ek tukda, naya offset wapas),
 `finish` (metadata / privacy / thumbnail, `remote_id` wapas), `status` (`processing` / `completed` / `failed`).
 Baaqi sab — manzoori, fingerprints, retry, resume, logs — framework khud karta hai.
+
+## Phase 6.2 — teen hifazati sudhaar
+
+1. **HMAC dastakhat:** har manzoori HMAC-SHA256 se sign hoti hai. Key sirf OS keyring mein
+   (Windows Credential Manager / macOS Keychain / Linux Secret Service) — kisi file ya Git mein nahi.
+   Keyring na ho → manzoori aur upload dono **band** (fail closed). Job file badli → dastakhat ghalat → manzoori radd.
+2. **Upload ke dauran SHA-256:** har bheja gaya hissa (range) ka SHA-256 record hota hai; upload ke shuru,
+   resume aur aakhir mein poori file + har hissa dobara check. File badli (chahe wapas theek kar di jaye) → `finish` kabhi nahi.
+3. **Alag platform switches** (`config/publishing.json`): master `live_enabled` (yahan **aur** `config/settings.json`
+   dono mein `true` chahiye), har platform ka switch, `private_only: true`. Facebook/TikTok code mein **hard-blocked**.
+
+## YouTube setup (aap ke apne computer par — cloud se Google API band hai)
+
+1. https://console.cloud.google.com → naya project.
+2. *APIs & Services → Library* → **YouTube Data API v3** → Enable.
+3. *OAuth consent screen*: External, app name, apna email; Scopes: `youtube.upload` (+ `youtube.force-ssl` agar captions);
+   *Test users* mein apna Google account. (Testing mode mein refresh token ~7 din baad expire → dobara login.)
+4. *Credentials → Create credentials → OAuth client ID → **Desktop app*** → JSON download →
+   `secrets/youtube_client_secret.json` (Git mein kabhi nahi jaata).
+5. `pip install -r requirements-publishing.txt`
+6. `python run.py youtube-status` → `python run.py youtube-login` (browser mein **Google ka apna** page khulta hai;
+   password hum kabhi nahi maangte; token sirf keyring mein).
+7. Upload sirf tab: `live_enabled` dono jagah `true` + `publish-approve` + `publish-run --platform youtube` +
+   typed `UPLOAD youtube`. Privacy hamesha **private** (YouTube ka default PUBLIC hai — is liye har dafa explicit bheji jaati hai).
+
+Quota: videos.insert ~1 unit (Video Uploads bucket, 100/din), thumbnails.set ~50, captions.insert 400, videos.list 1;
+roz ka default 10,000 units. Shorts par custom thumbnail API se nahi lagta (skip).
