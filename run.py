@@ -362,6 +362,68 @@ def cmd_export(a) -> int:
     return 0
 
 
+def _print_checks(checks: dict) -> int:
+    from pipeline.publish_kit import LABELS, PLATFORMS
+    errors = 0
+    for p in PLATFORMS:
+        marks = []
+        for c in checks.get(p, []):
+            icon = "✅" if c["ok"] else ("⚠️" if c["level"] == "warn" else "❌")
+            errors += c["level"] == "error"
+            marks.append(f"{icon} {c['msg']}")
+        print(f"   {LABELS[p]}:")
+        for m in marks:
+            print(f"      {m}")
+    return errors
+
+
+def cmd_metadata(a) -> int:
+    from pipeline.project import Project
+    from pipeline.publish_kit import refresh_from_json, write_metadata
+    p = Project.open(a.project)
+    res = refresh_from_json(p) if a.refresh else write_metadata(p, title_index=(a.title or 1) - 1, force=a.force)
+    print("📝 Platform metadata tayyar (title, description, hashtags):")
+    errors = _print_checks(res["checks"])
+    print(f"\n   Copy-paste file: {res['dir'] / 'metadata.md'}")
+    print(f"   Badalna ho to:   {res['dir'] / 'metadata.json'}  phir: python run.py metadata {p.path.name} --refresh")
+    return 1 if errors else 0
+
+
+def cmd_thumbnail(a) -> int:
+    from pipeline.project import Project
+    from pipeline.publish_kit import make_thumbnails
+    p = Project.open(a.project)
+    print("🖼️ Thumbnail ban raha hai (behtareen frame khud chuna ja raha hai)…")
+    info = make_thumbnails(p, time=a.time, text=a.text)
+    how = "khud chuna" if info["auto"] else "aap ne chuna"
+    print(f"   Frame: {info['time']:.1f}s ({how})  ·  Text: {info['text']}")
+    for kind, f in info["files"].items():
+        print(f"   ✅ {f['file']}  ({f['size'][0]}×{f['size'][1]}, {f['bytes'] // 1024} KB)")
+    print("   Doosre achhe frames: " + ", ".join(f"{c['time']:.1f}s" for c in info["candidates"][1:]))
+    print(f"   Koi aur frame chahiye: python run.py thumbnail {p.path.name} --time <second>")
+    return 0
+
+
+def cmd_publish_kit(a) -> int:
+    from pipeline.preview import build_preview
+    from pipeline.project import Project
+    from pipeline.publish_kit import write_metadata
+    p = Project.open(a.project)
+    a.refresh = False
+    rc_t = cmd_thumbnail(a)
+    try:
+        res = write_metadata(p, title_index=(a.title or 1) - 1, force=a.force)
+    except FileExistsError as e:
+        print(f"ℹ️ {e}")
+        from pipeline.publish_kit import refresh_from_json
+        res = refresh_from_json(p)
+    print("\n📝 Platform metadata:")
+    errors = _print_checks(res["checks"])
+    out = build_preview(p)
+    print(f"\n📦 Publishing kit tayyar. Kuch bhi upload / publish NAHI hua.\n   Dekhein: {out}")
+    return 1 if (errors or rc_t) else 0
+
+
 def cmd_font_test(a) -> int:
     from pathlib import Path
 
@@ -479,6 +541,27 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("project")
     s.add_argument("--yes", action="store_true", help="tasdeeq ka sawal skip")
     s.set_defaults(fn=cmd_export)
+
+    s = sub.add_parser("metadata", help="Phase 5: har platform ka title / description / hashtags")
+    s.add_argument("project")
+    s.add_argument("--title", type=int, help="script ke TITLES mein se kaun sa (1, 2, 3…)")
+    s.add_argument("--refresh", action="store_true", help="haath se badli metadata.json ko check kar ke .md dobara banayein")
+    s.add_argument("--force", action="store_true")
+    s.set_defaults(fn=cmd_metadata)
+
+    s = sub.add_parser("thumbnail", help="Phase 5: YouTube thumbnail + TikTok/Reels/Shorts cover")
+    s.add_argument("project")
+    s.add_argument("--time", type=float, help="kis second ka frame (default: behtareen khud chunein)")
+    s.add_argument("--text", help="thumbnail par text (default: video ka title)")
+    s.set_defaults(fn=cmd_thumbnail)
+
+    s = sub.add_parser("publish-kit", help="Phase 5: metadata + thumbnails ek saath (kuch upload nahi hota)")
+    s.add_argument("project")
+    s.add_argument("--title", type=int)
+    s.add_argument("--time", type=float)
+    s.add_argument("--text")
+    s.add_argument("--force", action="store_true")
+    s.set_defaults(fn=cmd_publish_kit)
 
     s = sub.add_parser("font-test", help="Urdu Nastaliq render test tasveer")
     s.add_argument("--out")

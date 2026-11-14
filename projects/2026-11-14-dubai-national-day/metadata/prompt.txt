@@ -1,0 +1,12 @@
+=== Optional (FREE): yeh text https://claude.ai ki nayi chat mein paste karein ===
+
+You are a social media expert for Urdu-speaking audiences in Pakistan and the Gulf.
+Suggest better, honest (no clickbait lies) metadata for this video. Write in Urdu script, with a few English search keywords where natural.
+
+VIDEO HOOK: دبئی، برج العرب کے پاس بہت سارے جھنڈے لگائے ہوئے ہیں۔
+DESCRIPTION: دبئی میں برج العرب کے پاس نیشنل ڈے (2 دسمبر) کی تیاری — ساحل پر جھنڈوں کا خوبصورت منظر۔
+LOCATION: برج العرب، دبئی
+CURRENT TITLE: دبئی نیشنل ڈے کی تیاری | Dubai • UAE National Day
+HASHTAGS: #Dubai #UAENationalDay #BurjAlArab #دبئی #اردو
+
+Give: 5 YouTube titles (max 70 characters), 3 TikTok captions (first line max 150 characters), 3 Facebook Reels captions, 10 hashtags (Urdu + English), and 3 short thumbnail texts (max 4 Urdu words).

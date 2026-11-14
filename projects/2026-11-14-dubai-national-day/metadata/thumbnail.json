@@ -1,0 +1,88 @@
+{
+  "time": 18.0,
+  "auto": true,
+  "text": "دبئی نیشنل ڈے کی تیاری",
+  "tag": "برج العرب، دبئی",
+  "candidates": [
+    {
+      "time": 18.0,
+      "sharpness": 2258.612477697338,
+      "colorfulness": 65.068396154786,
+      "exposure": 0.9803242037555763,
+      "intrusion": 0.12385099177552007,
+      "sharpness_n": 0.7812704752315308,
+      "colorfulness_n": 1.0,
+      "score": 0.7986
+    },
+    {
+      "time": 33.0,
+      "sharpness": 2612.794102237709,
+      "colorfulness": 63.60410701537202,
+      "exposure": 0.9210836186326382,
+      "intrusion": 0.27818093855829706,
+      "sharpness_n": 1.0,
+      "colorfulness_n": 0.9548504714277933,
+      "score": 0.7459
+    },
+    {
+      "time": 31.0,
+      "sharpness": 1971.6586196192075,
+      "colorfulness": 67.88988570881146,
+      "exposure": 0.9419070961718021,
+      "intrusion": 0.15432994678277698,
+      "sharpness_n": 0.5972023894678831,
+      "colorfulness_n": 1.0,
+      "score": 0.6837
+    },
+    {
+      "time": 24.0,
+      "sharpness": 2481.631694810407,
+      "colorfulness": 48.10129851881369,
+      "exposure": 0.9667481066500674,
+      "intrusion": 0.1412675374939526,
+      "sharpness_n": 0.9243273438774053,
+      "colorfulness_n": 0.4768407147994455,
+      "score": 0.6632
+    },
+    {
+      "time": 21.5,
+      "sharpness": 2303.7106271730786,
+      "colorfulness": 48.386530279959466,
+      "exposure": 0.954795881315489,
+      "intrusion": 0.15432994678277698,
+      "sharpness_n": 0.8101989242200864,
+      "colorfulness_n": 0.48563548026134457,
+      "score": 0.6021
+    },
+    {
+      "time": 28.0,
+      "sharpness": 2237.9481073263173,
+      "colorfulness": 45.85030308998302,
+      "exposure": 0.9126789604730781,
+      "intrusion": 0.08611514271891631,
+      "sharpness_n": 0.7680152044253472,
+      "colorfulness_n": 0.40743407939233545,
+      "score": 0.6019
+    }
+  ],
+  "files": {
+    "youtube": {
+      "file": "/home/user/Social-media-video-automation/projects/2026-11-14-dubai-national-day/output/thumbnails/youtube_thumbnail_1280x720.jpg",
+      "size": [
+        1280,
+        720
+      ],
+      "bytes": 136227
+    },
+    "cover": {
+      "file": "/home/user/Social-media-video-automation/projects/2026-11-14-dubai-national-day/output/thumbnails/cover_9x16_1080x1920.jpg",
+      "size": [
+        1080,
+        1920
+      ],
+      "bytes": 277698
+    }
+  },
+  "candidates_sheet": "/home/user/Social-media-video-automation/projects/2026-11-14-dubai-national-day/output/thumbnails/candidates.jpg",
+  "created": "2026-11-14T14:53:15"
+}

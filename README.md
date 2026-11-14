@@ -32,7 +32,7 @@
 | Preview page (sun kar / dekh kar check) | 2 | ✅ Tayyar |
 | Urdu subtitles (.srt + video par Nastaliq, bolta lafz highlight) | 3 | ✅ Tayyar |
 | Video editing (trim, stabilization, color grade, transition, title, 9:16 + 16:9) | 4 | ✅ Tayyar (music baad mein) |
-| YouTube / TikTok / Facebook versions | 5 | ⏳ |
+| Platform-specific title, description, hashtags, thumbnails (YouTube, Shorts, Reels, TikTok) | 5 | ✅ Tayyar |
 | Official publishing (aap ki approval ke saath) | 6 | ⏳ |
 
 **Aap ki awaaz aur chehra kabhi nahi badle jaate.** Koi AI voice, koi voice cloning nahi.
@@ -229,6 +229,27 @@ python run.py export dubai-video                                   # sirf aap ke
   Final files: `output/final_9x16.mp4`, `output/final_16x9.mp4`. **Kuch bhi upload / publish nahi hota.**
 - ⚠️ WhatsApp wali video kam quality (480p) ki hoti hai. Behtar natije ke liye phone se **asal file** bhejein.
 
+### Qadam 11 — Har platform ka title, description, hashtags aur thumbnail (Phase 5)
+```bash
+python run.py publish-kit dubai-video          # sab ek saath (kuch upload NAHI hota)
+python run.py metadata dubai-video --title 2   # script ke TITLES mein se doosra title
+python run.py thumbnail dubai-video --time 21.5 --text "دبئی نیشنل ڈے|کی تیاری"   # apna frame / apna text
+```
+Kya banta hai:
+- `metadata/metadata.md` — **YouTube, YouTube Shorts, Facebook Reels, TikTok** ke liye alag alag title,
+  description / caption, hashtags aur YouTube tags — copy-paste ready. Har platform ki hudood khud check hoti hain
+  (title ki lambai, "more" se pehle wali pehli line, hashtags ki ginti, YouTube ke mana nishaan `<` `>`).
+- `output/thumbnails/youtube_thumbnail_1280x720.jpg` — YouTube thumbnail (2 MB se kam)
+- `output/thumbnails/cover_9x16_1080x1920.jpg` — TikTok / Reels / Shorts cover; text beech ke mehfooz hisse mein
+  (profile grid mein cover ka sirf beech wala hissa dikhta hai)
+- Behtareen frame **khud chuna** jaata hai: tez (sharp), rangeen, achhi roshni, aur kinare par koi dhundla
+  baazu / kandha nahi. `output/thumbnails/candidates.jpg` mein doosre achhe frames.
+- Text ki line khud tootti hai; `|` laga kar apni marzi se todein.
+- Preview page par har text ke saath **📋 Copy** button.
+- Metadata khud badalna ho: `metadata/metadata.json` edit karein, phir `python run.py metadata dubai-video --refresh`.
+  Aap ki tabdeeliyan kabhi chupke se nahi mitti.
+- Aur title ideas (free): `metadata/prompt.txt` claude.ai mein paste karein.
+
 ---
 
 ## 5. Achhi recording ke tips
@@ -260,6 +281,9 @@ python run.py export dubai-video                                   # sirf aap ke
 | `python run.py edit-init <project> --title "..." [--trim-start 2]` | Editing plan (edit.json) |
 | `python run.py edit-preview <project>` | Editing PREVIEW (9:16 + 16:9) |
 | `python run.py export <project>` | Final files — preview approve karne ke baad |
+| `python run.py publish-kit <project>` | Phase 5: metadata + thumbnails ek saath |
+| `python run.py metadata <project> [--title 2] [--refresh]` | Har platform ka title / description / hashtags |
+| `python run.py thumbnail <project> [--time 21.5] [--text "..."]` | YouTube thumbnail + 9:16 cover |
 | `python run.py preview <project> [--serve]` | Preview page |
 | `python run.py font-test` | Urdu Nastaliq render test |
 | `python -m unittest discover -s tests -v` | Automated tests (developer check) |
@@ -323,7 +347,7 @@ ek munasib doosra model istemal karti hai (server-side fallback) — us ki lagat
 
 - ~~**Phase 3:** Urdu subtitles~~ ✅ ho gaya
 - **Phase 4:** Cinematic editing — transitions, color grading, music ducking, sound effects
-- **Phase 5:** YouTube 16:9, Shorts, TikTok, Facebook Reel versions + thumbnail
+- ~~**Phase 5:** title, description, hashtags, thumbnails~~ ✅ ho gaya
 - **Phase 6:** Official APIs se publishing — sirf aap ki approval ke baad
 
 ---

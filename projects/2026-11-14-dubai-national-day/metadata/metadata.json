@@ -1,0 +1,65 @@
+{
+  "youtube": {
+    "title": "دبئی نیشنل ڈے کی تیاری | Dubai • UAE National Day",
+    "description": "دبئی، برج العرب کے پاس بہت سارے جھنڈے لگائے ہوئے ہیں۔\n\nدبئی میں برج العرب کے پاس نیشنل ڈے (2 دسمبر) کی تیاری — ساحل پر جھنڈوں کا خوبصورت منظر۔\n\n📍 برج العرب، دبئی\n\nویڈیو پسند آئے تو لائک کریں، چینل سبسکرائب کریں اور بیل آئیکن دبائیں۔\n\n#Dubai #UAENationalDay #BurjAlArab #دبئی #اردو",
+    "hashtags": [
+      "#Dubai",
+      "#UAENationalDay",
+      "#BurjAlArab",
+      "#دبئی",
+      "#اردو"
+    ],
+    "tags": [
+      "Dubai",
+      "UAE National Day",
+      "Burj Al Arab",
+      "دبئی",
+      "اردو",
+      "دبئی نیشنل ڈے کی تیاری"
+    ],
+    "video_file": "output/final_16x9.mp4",
+    "thumbnail_file": "output/thumbnails/youtube_thumbnail_1280x720.jpg"
+  },
+  "youtube_shorts": {
+    "title": "دبئی نیشنل ڈے کی تیاری",
+    "description": "دبئی، برج العرب کے پاس بہت سارے جھنڈے لگائے ہوئے ہیں۔\n\n📍 برج العرب، دبئی\n\nویڈیو پسند آئے تو لائک کریں، چینل سبسکرائب کریں اور بیل آئیکن دبائیں۔\n\n#Shorts #Dubai #UAENationalDay #BurjAlArab #دبئی #اردو",
+    "hashtags": [
+      "#Shorts",
+      "#Dubai",
+      "#UAENationalDay",
+      "#BurjAlArab",
+      "#دبئی",
+      "#اردو"
+    ],
+    "video_file": "output/final_9x16.mp4",
+    "thumbnail_file": "output/thumbnails/cover_9x16_1080x1920.jpg",
+    "cover_timestamp_ms": 18000
+  },
+  "facebook_reels": {
+    "title": "دبئی نیشنل ڈے کی تیاری",
+    "caption": "دبئی، برج العرب کے پاس بہت سارے جھنڈے لگائے ہوئے ہیں۔\n\nدبئی میں برج العرب کے پاس نیشنل ڈے (2 دسمبر) کی تیاری — ساحل پر جھنڈوں کا خوبصورت منظر۔\n\n📍 برج العرب، دبئی\n\nایسی مزید ویڈیوز کے لیے فالو کریں۔\n\n#Dubai #UAENationalDay #BurjAlArab #دبئی #اردو",
+    "hashtags": [
+      "#Dubai",
+      "#UAENationalDay",
+      "#BurjAlArab",
+      "#دبئی",
+      "#اردو"
+    ],
+    "video_file": "output/final_9x16.mp4",
+    "thumbnail_file": "output/thumbnails/cover_9x16_1080x1920.jpg",
+    "cover_timestamp_ms": 18000
+  },
+  "tiktok": {
+    "caption": "دبئی نیشنل ڈے کی تیاری — دبئی، برج العرب کے پاس بہت سارے جھنڈے لگائے ہوئے ہیں۔\n📍 برج العرب، دبئی\n#Dubai #UAENationalDay #BurjAlArab #دبئی #اردو",
+    "hashtags": [
+      "#Dubai",
+      "#UAENationalDay",
+      "#BurjAlArab",
+      "#دبئی",
+      "#اردو"
+    ],
+    "video_file": "output/final_9x16.mp4",
+    "thumbnail_file": "output/thumbnails/cover_9x16_1080x1920.jpg",
+    "cover_timestamp_ms": 18000
+  }
+}

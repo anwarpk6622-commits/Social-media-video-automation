@@ -56,5 +56,18 @@
     "urdu_regular": "assets/fonts/NotoNastaliqUrdu-Regular.ttf",
     "urdu_bold": "assets/fonts/NotoNastaliqUrdu-Bold.ttf",
     "urdu_family": "Noto Nastaliq Urdu"
+  },
+
+  "publishing": {
+    "call_to_action_ur": "ویڈیو پسند آئے تو لائک کریں، چینل سبسکرائب کریں اور بیل آئیکن دبائیں۔",
+    "follow_line_ur": "ایسی مزید ویڈیوز کے لیے فالو کریں۔",
+    "extra_hashtags": [],
+    "platforms": {
+      "youtube":        { "title_max": 100, "title_ideal": 70, "description_max": 5000, "hashtags_max": 15, "tags_chars_max": 500 },
+      "youtube_shorts": { "title_max": 100, "title_ideal": 60, "description_max": 5000, "hashtags_max": 15 },
+      "facebook_reels": { "caption_max": 2200, "caption_ideal": 125, "hashtags_ideal": 5 },
+      "tiktok":         { "caption_max": 2200, "caption_ideal": 150, "hashtags_ideal": 5 }
+    },
+    "thumbnail": { "youtube_size": [1280, 720], "cover_size": [1080, 1920], "max_bytes": 2000000 }
   }
 }

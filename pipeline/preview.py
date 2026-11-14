@@ -87,7 +87,24 @@ table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--li
 audio{width:100%}code{background:var(--bg);padding:2px 6px;border-radius:6px;font-size:.9em}
 .urdu{font-family:"UrduNastaliq",serif;direction:rtl;text-align:right;font-size:1.35rem;line-height:2.4;white-space:pre-wrap}
 .tip{border-left:4px solid var(--accent);padding:4px 12px}
+.kv{margin:10px 0}.kvh{display:flex;gap:8px;align-items:center;margin-bottom:4px}
+.copy{margin-inline-start:auto;font:600 .85rem system-ui,sans-serif;padding:4px 10px;border-radius:8px;border:1px solid var(--line);
+  background:var(--bg);color:var(--text);cursor:pointer}
+pre.copytext{margin:0;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:1.05rem;
+  line-height:2.1;white-space:pre-wrap;word-break:break-word;unicode-bidi:plaintext;text-align:start}
+details{border-top:1px solid var(--line);padding:8px 0}summary{cursor:pointer;padding:6px 0}
 """
+
+COPY_JS = """<script>
+document.addEventListener('click', async (ev) => {
+  const b = ev.target.closest('button.copy'); if (!b) return;
+  const pre = b.closest('.kv').querySelector('pre.copytext');
+  try { await navigator.clipboard.writeText(pre.innerText); b.textContent = '✅ Copied'; }
+  catch (e) { const r = document.createRange(); r.selectNodeContents(pre);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Ctrl+C dabayein'; }
+  setTimeout(() => { b.textContent = '📋 Copy'; }, 1800);
+});
+</script>"""
 
 
 def _fmt_time(t: float | None) -> str:
@@ -248,6 +265,42 @@ save karein, phir <code>python run.py subtitle-video {e(project.path.name)}</cod
 (aap se "yes" poocha jaayega). Kuch badalna ho to <code>edit.json</code> badal kar <code>edit-preview</code> dobara chalayein.</p>
 </section>""")
 
+    # --- publishing kit (Phase 5)
+    mjson = project.path / "metadata" / "metadata.json"
+    if mjson.exists():
+        from .publish_kit import LABELS, PLATFORMS, validate
+        meta = json.loads(mjson.read_text(encoding="utf-8"))
+        checks = validate(meta)
+        thumbs = ""
+        for name, label in (("youtube_thumbnail_1280x720.jpg", "YouTube thumbnail (1280×720)"),
+                            ("cover_9x16_1080x1920.jpg", "TikTok / Reels / Shorts cover (1080×1920)")):
+            f = project.path / "output" / "thumbnails" / name
+            if f.exists():
+                thumbs += f'<div><b>{label}</b><img alt="{e(label)}" src="{e(_rel(f, pv))}"></div>'
+        cards = ""
+        for pl in PLATFORMS:
+            m = meta.get(pl, {})
+            blocks = ""
+            for field, flabel in (("title", "Title"), ("description", "Description"), ("caption", "Caption")):
+                if m.get(field):
+                    blocks += (f'<div class="kv"><div class="kvh"><b>{flabel}</b> <span class="muted">({len(m[field])} haroof)</span>'
+                               f'<button class="copy" type="button">📋 Copy</button></div>'
+                               f'<pre class="urdu copytext">{e(m[field])}</pre></div>')
+            if m.get("tags"):
+                blocks += (f'<div class="kv"><div class="kvh"><b>Tags</b><button class="copy" type="button">📋 Copy</button></div>'
+                           f'<pre class="copytext">{e(", ".join(m["tags"]))}</pre></div>')
+            marks = " · ".join(("✅ " if c["ok"] else ("⚠️ " if c["level"] == "warn" else "❌ ")) + e(c["msg"])
+                               for c in checks.get(pl, []))
+            cards += f'<details open><summary><b>{LABELS[pl]}</b></summary>{blocks}<p class="muted">{marks}</p></details>'
+        parts.append(f"""
+<section class="card"><h2>📦 Publishing kit (Phase 5)</h2>
+<div class="grid">{thumbs}</div>
+{cards}
+<p class="tip">Yeh sab <b>khud copy-paste</b> karne ke liye hai. Kuch bhi upload / publish NAHI hota.
+Badalna ho to <code>metadata/metadata.json</code> edit kar ke <code>python run.py metadata {e(project.path.name)} --refresh</code>.
+Thumbnail ka doosra frame: <code>python run.py thumbnail {e(project.path.name)} --time 21.5</code></p>
+</section>""")
+
     # --- font test
     ft = pv / "font_test.png"
     try:
@@ -268,7 +321,7 @@ save karein, phir <code>python run.py subtitle-video {e(project.path.name)}</cod
 <p class="muted">Topic: {e(meta.get('topic') or '—')} · Preview banaya gaya: {_dt.datetime.now():%Y-%m-%d %H:%M}</p>
 {''.join(parts)}
 <p class="muted">Yeh page sirf aap ke computer / session par hai. Kuch bhi upload ya publish nahi hua.</p>
-</main></body></html>
+</main>{COPY_JS}</body></html>
 """
     out = pv / "preview.html"
     out.write_text(page, encoding="utf-8")

@@ -1,0 +1,104 @@
+{
+  "json_hash": "bf65e416feaad58e53b11144be41bb1ba28bf9919dbf2d796d586c31aea1fd2c",
+  "checks": {
+    "youtube": [
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "Title 49/100 haroof"
+      },
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "Title 70 se chhota ho to poora dikhta hai"
+      },
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "Description 280/5000"
+      },
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "< aur > ke nishaan nahi (YouTube mana karta hai)"
+      },
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "Hashtags 5/15 (zyada hon to YouTube sab ignore karta hai)"
+      },
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "Tags 69/500 haroof"
+      }
+    ],
+    "youtube_shorts": [
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "Title 22/100 haroof"
+      },
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "Title 60 se chhota ho to poora dikhta hai"
+      },
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "Description 199/5000"
+      },
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "< aur > ke nishaan nahi (YouTube mana karta hai)"
+      },
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "Hashtags 6/15 (zyada hon to YouTube sab ignore karta hai)"
+      },
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "#Shorts description mein mojood"
+      }
+    ],
+    "facebook_reels": [
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "Caption 245/2200 haroof"
+      },
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "Pehli line 53/125 (\"more\" se pehle dikhti hai)"
+      },
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "Hashtags 5 (behtar: 3–5)"
+      }
+    ],
+    "tiktok": [
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "Caption 143/2200 haroof"
+      },
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "Pehli line 78/150 (\"more\" se pehle dikhti hai)"
+      },
+      {
+        "ok": true,
+        "level": "ok",
+        "msg": "Hashtags 5 (behtar: 3–5)"
+      }
+    ]
+  },
+  "time": "2026-11-14T14:53:15"
+}
