@@ -80,3 +80,22 @@ Test upload `notifySubscribers=false` ke saath hota hai (API ka default true hai
 Adapter Phase 6.2 mein **sirf private** qubool karta hai (public / unlisted / schedule code mein band) aur upload ke
 baad YouTube ki batayi hui privacy check karta hai — 'private' na ho to thumbnail/captions roke jaate hain aur alert.
 Login ke baad client secret bhi keyring ke token mein shamil hota hai — chahein to `secrets/` wali JSON file hata sakte hain.
+
+## Pehla PRIVATE test upload — Windows PC (manzoor shuda: sirf `youtube.upload`)
+
+Hifazati intezam is test ke liye:
+- `upload_captions: false` → login sirf `youtube.upload` maangta hai; Google zyada/kam ijazat de to login **mehfooz nahi** hota.
+- `youtube_shorts` switch OFF · `max_live_uploads: 1` (sab projects mila kar) · `private_only: true`.
+- Upload se pehle `channels.list?mine=true` se channel dobara check (aap ne `youtube-channel` mein jo tasdeeq kiya).
+- `live-switch on` sirf EK run ke liye — `publish-run` ke baad (kamyab ho ya nakaam) khud OFF.
+- Upload ke baad aur har processing check par privacy `private` honi chahiye, warna foran stop + ⚠️ alert.
+
+Commands tarteeb se:
+```
+python run.py youtube-status
+python run.py youtube-login                 # LOGIN likhein → Google ka apna page → sirf wahin password
+python run.py youtube-channel               # channel dekh kar HAAN
+python run.py publish-approve 2026-11-14-dubai-national-day --platform youtube     # APPROVE
+python run.py live-switch on                # LIVE ON
+python run.py publish-run 2026-11-14-dubai-national-day --platform youtube         # UPLOAD youtube
+```

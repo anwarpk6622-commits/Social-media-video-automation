@@ -487,7 +487,7 @@ def cmd_publish_approve(a) -> int:
     if not ids:
         print("ℹ️ Manzoori ke liye koi validated job nahi. Pehle: publish-check")
         return 1
-    print("✋ Manzoori — har job alag se. (Phase 6.1: manzoori ke baad bhi asal upload mumkin nahi.)\n")
+    print("✋ Manzoori — har job alag se. (Manzoori ke baad bhi asal upload ke liye switch + 'UPLOAD <job>' alag se.)\n")
     rc = 0
     for jid in ids:
         try:
@@ -546,7 +546,16 @@ def cmd_publish_run(a) -> int:
 
 
 def _publish_live(p, store, a) -> int:
-    """Phase 6.2: REAL upload — YouTube only, behind every guard + separate typed confirmation."""
+    """Phase 6.2: REAL upload — YouTube only. Whatever happens, the master switch goes back OFF."""
+    try:
+        return _publish_live_once(p, store, a)
+    finally:
+        _set_live(False)
+        print("🔒 Master switch wapas OFF (live_enabled = false).")
+
+
+def _publish_live_once(p, store, a) -> int:
+    """Behind every guard + separate typed confirmation."""
     from publishers.guard import GuardError, check_live, load_config
     from publishers.retry import FatalError
     from publishers.runner import RunError, run_job
@@ -572,8 +581,92 @@ def _publish_live(p, store, a) -> int:
     except RunError as e:
         print(f"{e}\n   (Kuch upload nahi hua.)")
         return 1
-    print(f"   {jid} → {job.status}  {job.upload.get('url') or ''}  {job.error.get('message', '') if job.error else ''}")
+    vid = job.upload.get("remote_id")
+    print("\n══════ NATIJA ══════")
+    print(f"Haalat       : {job.status}")
+    for c in adapter.privacy_checks:
+        print(f"Privacy check: {c['stage']:24} → {c['privacy']}  {'✅' if c['privacy'] == 'private' else '⚠️ KHATRA'}")
+    if vid:
+        print(f"Video ID     : {vid}")
+        print(f"Private link : https://www.youtube.com/watch?v={vid}   (sirf aap login ho kar dekh sakte hain)")
+        print(f"YouTube Studio: https://studio.youtube.com/video/{vid}/edit")
+        print(f"Thumbnail    : {(job.upload.get('extras') or {}).get('thumbnail', '-')}   ·  Captions: "
+              f"{(job.upload.get('extras') or {}).get('captions', '-')}")
+    if job.error:
+        print(f"Masla        : {job.error.get('message', '')}")
+    print("════════════════════")
     return 0 if job.status in ("completed", "processing") else 1
+
+
+_LIVE_FILES = ("config/publishing.json", "config/settings.json")
+
+
+def _set_live(on: bool) -> None:
+    """Flip ONLY the live_enabled line in both config files (text edit, formatting kept)."""
+    import re
+
+    from pipeline.config import ROOT
+    for rel in _LIVE_FILES:
+        f = ROOT / rel
+        txt = f.read_text(encoding="utf-8")
+        new, n = re.subn(r'"live_enabled":\s*(true|false)', f'"live_enabled": {"true" if on else "false"}', txt, count=1)
+        if n != 1:
+            raise RuntimeError(f"{rel} mein live_enabled nahi mila")
+        if new != txt:
+            f.write_text(new, encoding="utf-8")
+
+
+def cmd_live_switch(a) -> int:
+    from publishers.guard import load_config, settings_live_enabled
+    if a.state == "off":
+        _set_live(False)
+        print("🔒 Asal publishing band (live_enabled = false, dono files).")
+        return 0
+    cfg = load_config()
+    on = [k for k, v in cfg["platforms_live"].items() if v]
+    print("⚠️ Asal upload ka master switch ON karna — sirf EK run ke liye; run ke baad khud OFF ho jaata hai.")
+    print(f"   Platforms ON: {', '.join(on)} · private_only: {cfg['private_only']} · upload hadd: {cfg['max_live_uploads']}")
+    if input("   Tasdeeq ke liye bilkul 'LIVE ON' likhein: ").strip() != "LIVE ON":
+        print("❎ Kuch nahi badla.")
+        return 0
+    _set_live(True)
+    print(f"✅ ON ({'dono files' if load_config()['live_enabled'] and settings_live_enabled() else 'masla — check karein'}). "
+          "Band karne ke liye: python run.py live-switch off")
+    return 0
+
+
+def cmd_youtube_channel(_a) -> int:
+    import json
+
+    from pipeline.config import ROOT
+    from publishers.retry import FatalError, TransientError
+    from publishers.secrets import KeyringUnavailable, secure_store
+    from publishers.youtube import authorized_session, channel_key, load_credentials, my_channels
+    ycfg = json.loads((ROOT / "config" / "publishing.json").read_text(encoding="utf-8")).get("youtube", {})
+    account = ycfg.get("account", "default")
+    try:
+        store = secure_store()
+        creds = load_credentials(store, account, captions=bool(ycfg.get("upload_captions", False)))
+        found = my_channels(authorized_session(creds))
+    except (KeyringUnavailable, FatalError, TransientError) as e:
+        print(f"⛔ {e}")
+        return 1
+    if len(found) != 1:
+        print(f"⛔ Is login se {len(found)} channel mile — bilkul EK hona chahiye. Kuch mehfooz nahi kiya.")
+        return 1
+    c = found[0]
+    print("📺 Login wala YouTube channel (read-only check, 1 quota unit):")
+    print(f"   Naam   : {c['title']}")
+    print(f"   Handle : {c.get('handle') or '-'}")
+    print(f"   ID     : {c['id']}")
+    print(f"   Link   : https://www.youtube.com/channel/{c['id']}")
+    if input("   Kya yahi aap ka sahi channel hai? Tasdeeq ke liye 'HAAN' likhein: ").strip() != "HAAN":
+        store.delete(channel_key(account))
+        print("❎ Channel tasdeeq nahi hua — upload mumkin nahi. (youtube-logout kar ke sahi account se login karein.)")
+        return 1
+    store.set(channel_key(account), json.dumps({"id": c["id"], "title": c["title"]}, ensure_ascii=False))
+    print("✅ Channel tasdeeq mehfooz (OS keyring). Har upload se pehle dobara check hoga.")
+    return 0
 
 
 def cmd_youtube_login(a) -> int:
@@ -588,7 +681,7 @@ def cmd_youtube_login(a) -> int:
     except KeyringUnavailable as e:
         print(f"⛔ {e}\n   Login token sirf OS keyring mein rakha jaata hai — is ke baghair login nahi hoga.")
         return 1
-    cap = bool(ycfg.get("upload_captions", True))
+    cap = bool(ycfg.get("upload_captions", False))
     print("🔐 YouTube login — Google ka OFFICIAL page browser mein khulega. Password sirf wahin (accounts.google.com) likhein.")
     print("   Maangi jaane wali ijazatein:")
     for s in scopes(cap):
@@ -596,9 +689,16 @@ def cmd_youtube_login(a) -> int:
     if input("   Aage barhne ke liye 'LOGIN' likhein: ").strip() != "LOGIN":
         print("❎ Login cancel.")
         return 0
-    info = login(ROOT / ycfg.get("client_secrets_file", "secrets/youtube_client_secret.json"), store,
-                 ycfg.get("account", "default"), captions=cap)
-    print(f"✅ Login mukammal. Token OS keyring mein mehfooz (kabhi file ya log mein nahi). Ijazatein: {len(info['scopes'])}")
+    from publishers.retry import FatalError
+    try:
+        info = login(ROOT / ycfg.get("client_secrets_file", "secrets/youtube_client_secret.json"), store,
+                     ycfg.get("account", "default"), captions=cap)
+    except (FatalError, FileNotFoundError) as e:
+        print(f"⛔ {e}")
+        return 1
+    print(f"✅ Login mukammal. Token OS keyring mein mehfooz (kabhi file ya log mein nahi).")
+    print(f"   Di gayi ijazatein: {', '.join(s.rsplit('/', 1)[-1] for s in info['scopes'])}")
+    print("   Agla qadam: python run.py youtube-channel")
     return 0
 
 
@@ -625,7 +725,8 @@ def cmd_youtube_status(_a) -> int:
     from publishers.guard import HARD_BLOCKED, load_config, settings_live_enabled
     from publishers.secrets import KeyringUnavailable, secure_store
     from publishers.signing import SigningUnavailable, get_signer
-    from publishers.youtube import credentials_key
+    from publishers.guard import live_uploads_used
+    from publishers.youtube import channel_key, credentials_key, scopes
     cfg = load_config()
     ycfg = json.loads((ROOT / "config" / "publishing.json").read_text(encoding="utf-8")).get("youtube", {})
     print("📺 YouTube publishing — haalat (koi secret nahi dikhaya jaata)")
@@ -635,10 +736,14 @@ def cmd_youtube_status(_a) -> int:
         tag = "  (code mein band)" if plat in HARD_BLOCKED else ""
         print(f"   {plat:15} switch: {'ON' if on else 'OFF'}{tag}")
     print(f"   private_only: {'ON' if cfg['private_only'] else 'OFF'}")
+    print(f"   Asal uploads: {len(live_uploads_used(PROJECTS_DIR))}/{cfg['max_live_uploads']}")
+    print(f"   Login ijazat: {', '.join(s.rsplit('/', 1)[-1] for s in scopes(bool(ycfg.get('upload_captions', False))))}")
     try:
         store = secure_store()
         print("   OS keyring: ✅ mojood")
         print(f"   YouTube login: {'✅ hai' if store.get(credentials_key(ycfg.get('account', 'default'))) else '— nahi'}")
+        ch = store.get(channel_key(ycfg.get("account", "default")))
+        print(f"   Tasdeeq shuda channel: {json.loads(ch)['title'] if ch else '— nahi (python run.py youtube-channel)'}")
     except KeyringUnavailable as e:
         print(f"   OS keyring: ⛔ {e}")
     try:
@@ -874,6 +979,11 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("youtube-login", help="Phase 6.2: Google ke official page se login (token sirf OS keyring mein)") \
         .set_defaults(fn=cmd_youtube_login)
     sub.add_parser("youtube-logout", help="Phase 6.2: YouTube token hatayein + revoke").set_defaults(fn=cmd_youtube_logout)
+    sub.add_parser("youtube-channel", help="Phase 6.2: login wala channel dekhein aur tasdeeq karein") \
+        .set_defaults(fn=cmd_youtube_channel)
+    s = sub.add_parser("live-switch", help="Phase 6.2: asal upload ka master switch (sirf ek run; khud OFF)")
+    s.add_argument("state", choices=["on", "off"])
+    s.set_defaults(fn=cmd_live_switch)
     sub.add_parser("youtube-status", help="Phase 6.2: switches, keyring, login ki haalat").set_defaults(fn=cmd_youtube_status)
 
     s = sub.add_parser("font-test", help="Urdu Nastaliq render test tasveer")

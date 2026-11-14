@@ -59,7 +59,7 @@ def run_job(project_root: Path, store, job_id: str, adapter: PlatformAdapter, *,
             confirm_fn: Callable[[str], str] | None = None, guard_cfg: dict | None = None,
             settings_live: bool | None = None) -> Job:
     """`live_enabled` is kept for backward compatibility; real uploads are decided by guard.py."""
-    from .guard import GuardError, check_live, confirm_upload
+    from .guard import GuardError, check_live, check_upload_budget, confirm_upload
     from .signing import SigningUnavailable, get_signer
     if simulate and not adapter.offline:
         raise RunError("Simulation sirf offline adapter ke saath ho sakti hai.")
@@ -89,6 +89,7 @@ def run_job(project_root: Path, store, job_id: str, adapter: PlatformAdapter, *,
         if not adapter.offline:
             try:
                 check_live(real, guard_cfg, settings_live=settings_live)
+                check_upload_budget(project_root, real, guard_cfg)
             except GuardError as e:
                 log.write("run_blocked_guard", real.id, reason=str(e))
                 raise RunError(str(e)) from None
@@ -120,6 +121,9 @@ def run_job(project_root: Path, store, job_id: str, adapter: PlatformAdapter, *,
                 job.move(UPLOADING, "upload shuru")
                 job.upload.setdefault("attempts", 0)
                 job.upload["attempts"] += 1
+                if not adapter.offline:
+                    job.upload["live"] = True
+                    log.write("live_upload_started", job.id, privacy=job.privacy)   # counts toward max_live_uploads
                 jstore.save(job)
                 event("upload_started", job, privacy=job.privacy, attempt=job.upload["attempts"])
 

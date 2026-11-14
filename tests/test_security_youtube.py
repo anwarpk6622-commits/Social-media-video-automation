@@ -61,8 +61,10 @@ FAST = RetryPolicy(max_attempts=3, base_delay=0.0)
 NO_SLEEP = dict(sleep=lambda s: None, rng=random.Random(1))
 HAVE_FFMPEG = shutil.which("ffmpeg") is not None
 LIVE_CFG = {"live_enabled": True, "platforms_live": {"youtube": True, "youtube_shorts": True,
-                                                     "facebook_reels": True, "tiktok": True}, "private_only": True}
-YCFG = {"category_id": "22", "language": "ur", "made_for_kids": False, "upload_thumbnail": True, "upload_captions": True}
+                                                     "facebook_reels": True, "tiktok": True}, "private_only": True,
+            "max_live_uploads": 99}
+YCFG = {"category_id": "22", "language": "ur", "made_for_kids": False, "upload_thumbnail": True, "upload_captions": True,
+        "_expected_channel": "UC_TEST"}
 FAKE_TOKEN = "ya29." + "Q" * 40          # built at runtime (secret scanner never sees a literal)
 FAKE_REFRESH = "1//" + "R" * 40
 
@@ -324,7 +326,11 @@ class TestSwitches(Base):
     def test_repo_config_has_only_youtube_on_and_master_off(self):
         cfg = load_config()
         self.assertFalse(cfg["live_enabled"])
-        self.assertEqual({k for k, v in cfg["platforms_live"].items() if v}, {"youtube", "youtube_shorts"})
+        self.assertEqual({k for k, v in cfg["platforms_live"].items() if v}, {"youtube"})
+        self.assertEqual(cfg["max_live_uploads"], 1)
+        ycfg = json.loads((ROOT / "config/publishing.json").read_text(encoding="utf-8"))["youtube"]
+        self.assertFalse(ycfg["upload_captions"])
+        self.assertEqual(yt.scopes(ycfg["upload_captions"]), [yt.SCOPE_UPLOAD])
         self.assertTrue(cfg["private_only"])
         self.assertEqual(set(HARD_BLOCKED), {"facebook_reels", "tiktok"})
 
@@ -403,17 +409,21 @@ class FakeYouTube:
     """In-memory YouTube following the documented resumable protocol."""
 
     def __init__(self, root, faults=None, polls=1, final_upload_status="processed", partial_at=None,
-                 returned_privacy="SAME", poll_privacy="private"):
+                 returned_privacy="SAME", poll_privacy="private", channels=("UC_TEST",), video_channel="UC_TEST"):
         self.root, self.faults, self.polls = root, dict(faults or {}), polls
         self.calls, self.sessions, self.received = [], 0, bytearray()
         self.init_body, self.thumb, self.caption_body, self.final = None, None, None, final_upload_status
         self.partial_at, self.put_n, self._get_n = partial_at, 0, 0
         self.returned_privacy, self.poll_privacy = returned_privacy, poll_privacy
+        self.channels, self.video_channel = channels, video_channel
 
     def request(self, method, url, params=None, headers=None, data=None, timeout=None):
         headers = headers or {}
         assert "Authorization" not in headers, "adapter must not handle tokens itself"
         self.calls.append((method, url.split("?")[0], dict(params or {}), {k: v for k, v in headers.items()}, len(data or b"")))
+        if method == "GET" and url == yt.CHANNELS_URL:
+            assert params == {"part": "snippet", "mine": "true"}
+            return Resp(200, body={"items": [{"id": c, "snippet": {"title": "Test " + c}} for c in self.channels]})
         if method == "POST" and url == yt.UPLOAD_URL:
             self.sessions += 1
             self.received = bytearray()
@@ -446,7 +456,7 @@ class FakeYouTube:
                 st = {"uploadStatus": "uploaded"}
                 if rp is not None:
                     st["privacyStatus"] = rp
-                return Resp(200, body={"id": "VID123", "status": st})
+                return Resp(200, body={"id": "VID123", "status": st, "snippet": {"channelId": self.video_channel}})
             return Resp(308, {"Range": f"bytes=0-{len(self.received) - 1}"})
         if method == "POST" and url == yt.THUMB_URL:
             self.thumb = (params, len(data))
@@ -459,7 +469,7 @@ class FakeYouTube:
         if method == "GET" and url == yt.VIDEOS_URL:
             self._get_n += 1
             if self._get_n <= self.polls:
-                return Resp(200, body={"items": [{"status": {"uploadStatus": "uploaded"},
+                return Resp(200, body={"items": [{"status": {"uploadStatus": "uploaded", "privacyStatus": self.poll_privacy},
                                                   "processingDetails": {"processingStatus": "processing"}}]})
             return Resp(200, body={"items": [{"status": {"uploadStatus": self.final, "privacyStatus": self.poll_privacy},
                                               "processingDetails": {"processingStatus": "succeeded" if self.final == "processed" else "failed"}}]})
@@ -489,7 +499,8 @@ class TestYouTubeAdapter(Base):
         self.assertEqual(st["privacyStatus"], "private")                         # always explicit
         self.assertNotIn("publishAt", st)
         self.assertEqual(http.init_body["snippet"]["defaultLanguage"], "ur")
-        init = http.calls[0]
+        self.assertEqual(http.calls[0][1], yt.CHANNELS_URL, "channel must be checked BEFORE the upload starts")
+        init = next(c for c in http.calls if c[0] == "POST")
         self.assertEqual(init[2], {"uploadType": "resumable", "part": "snippet,status", "notifySubscribers": "false"})
         self.assertEqual(init[3]["X-Upload-Content-Length"], str(video.stat().st_size))
         puts = [c for c in http.calls if c[0] == "PUT"]
@@ -526,7 +537,7 @@ class TestYouTubeAdapter(Base):
         http = FakeYouTube(self.root, faults={3: 404})
         j, _ = self.live(http=http)
         self.assertEqual(j.status, md.COMPLETED)
-        self.assertEqual(len([c for c in http.calls if c[0] == "POST" and c[1] == yt.UPLOAD_URL]), 2)
+        self.assertEqual(len([c for c in http.calls if c[0] == "POST" and c[1] == yt.UPLOAD_URL]), 2)  # 2 sessions, 1 video
         self.assertEqual(bytes(http.received), (self.root / "output/final_16x9.mp4").read_bytes())
         self.assertIn("upload_restarted", [r["event"] for r in PublishLog(self.root).read("youtube")])
 
@@ -624,6 +635,63 @@ class TestYouTubeAdapter(Base):
             self.assertEqual(http.calls, [], f"{priv}: not a single request may reach YouTube")
             self.assertEqual(j.status, md.FAILED)
 
+    def test_wrong_or_unconfirmed_channel_blocks_before_any_upload(self):
+        self.approved("youtube")
+        for http, cfg in ((FakeYouTube(self.root, channels=("UC_OTHER",)), YCFG),
+                          (FakeYouTube(self.root, channels=("UC_TEST", "UC_OTHER")), YCFG),
+                          (FakeYouTube(self.root), dict(YCFG, _expected_channel=None))):
+            ad = yt.YouTubeAdapter("youtube", self.root, http, cfg)
+            j = run_job(self.root, self.store, "youtube", ad, simulate=False, policy=FAST, poll_interval=0, signer=self.signer,
+                        guard_cfg=LIVE_CFG, settings_live=True, confirm_fn=lambda _: "UPLOAD youtube", **NO_SLEEP)
+            self.assertEqual(j.status, md.FAILED)
+            self.assertFalse([c for c in http.calls if c[0] in ("POST", "PUT")], "no upload request may be sent")
+            # (failed job keeps its signed approval → next case retries the SAME job)
+
+    def test_video_on_other_channel_raises_alert(self):
+        self.approved("youtube")
+        j, http = self.live(http=FakeYouTube(self.root, video_channel="UC_OTHER"))
+        self.assertEqual(j.status, md.FAILED)
+        self.assertIn("aur channel", j.error["message"])
+        self.assertIsNone(http.thumb)
+
+    def test_upload_budget_allows_exactly_one_new_upload(self):
+        self.approved("youtube")
+        one = dict(LIVE_CFG, max_live_uploads=1)
+        http = FakeYouTube(self.root)
+        ad = yt.YouTubeAdapter("youtube", self.root, http, YCFG)
+        ad.chunk_size = self.CH
+        j = run_job(self.root, self.store, "youtube", ad, simulate=False, policy=FAST, poll_interval=0, signer=self.signer,
+                    guard_cfg=one, settings_live=True, confirm_fn=lambda _: "UPLOAD youtube", **NO_SLEEP)
+        self.assertEqual(j.status, md.COMPLETED)
+        self.approved("youtube_shorts")
+        http2 = FakeYouTube(self.root)
+        with self.assertRaises(RunError) as cm:
+            run_job(self.root, self.store, "youtube_shorts", yt.YouTubeAdapter("youtube_shorts", self.root, http2, YCFG),
+                    simulate=False, signer=self.signer, guard_cfg=one, settings_live=True,
+                    confirm_fn=lambda _: "UPLOAD youtube_shorts", **NO_SLEEP)
+        self.assertIn("hadd", str(cm.exception))
+        self.assertEqual(http2.calls, [])
+        # running the completed job again never uploads a second time
+        j = run_job(self.root, self.store, "youtube", ad, simulate=False, signer=self.signer, guard_cfg=one,
+                    settings_live=True, confirm_fn=lambda _: "UPLOAD youtube", **NO_SLEEP)
+        self.assertEqual(len([c for c in http.calls if c[0] == "POST" and c[1] == yt.UPLOAD_URL]), 1)
+
+    def test_zero_budget_by_default(self):
+        self.approved("youtube")
+        http = FakeYouTube(self.root)
+        with self.assertRaises(RunError):
+            run_job(self.root, self.store, "youtube", yt.YouTubeAdapter("youtube", self.root, http, YCFG), simulate=False,
+                    signer=self.signer, guard_cfg={k: v for k, v in LIVE_CFG.items() if k != "max_live_uploads"},
+                    settings_live=True, confirm_fn=lambda _: "UPLOAD youtube", **NO_SLEEP)
+        self.assertEqual(http.calls, [])
+
+    def test_privacy_checks_are_logged(self):
+        self.approved("youtube")
+        self.live()
+        ev = [r for r in PublishLog(self.root).read("youtube") if r["event"] == "privacy_verified"]
+        self.assertGreaterEqual(len(ev), 2)
+        self.assertEqual({r["privacy"] for r in ev}, {"private"})
+
     def test_logs_and_jobs_never_contain_session_urls_or_tokens(self):
         self.approved("youtube")
         self.live(http=FakeYouTube(self.root, faults={2: 503}))
@@ -663,13 +731,67 @@ class TestOAuth(unittest.TestCase):
             self.assertEqual(seen["scopes"], [yt.SCOPE_UPLOAD])                 # no broad scope without captions
             self.assertEqual(seen["kw"]["port"], 0)                             # loopback redirect, Google's page
             self.assertTrue(seen["kw"]["open_browser"])
-            self.assertIn(FAKE_REFRESH, store.get(yt.credentials_key("default")))
+            saved = store.get(yt.credentials_key("default"))
+            self.assertIn(FAKE_REFRESH, saved)
+            self.assertNotIn(FAKE_TOKEN, saved, "short-lived access token is never stored")
             self.assertNotIn(FAKE_TOKEN, out.getvalue() + json.dumps(info))
             self.assertEqual(yt.scopes(True), [yt.SCOPE_UPLOAD, yt.SCOPE_CAPTIONS])
             posted = []
             self.assertTrue(yt.logout(store, "default", http_post=lambda url, **k: posted.append((url, k))))
             self.assertIsNone(store.get(yt.credentials_key("default")))
             self.assertEqual(posted[0][0], yt.REVOKE_URL)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_extra_or_missing_granted_scopes_are_rejected(self):
+        for granted in ([yt.SCOPE_UPLOAD, yt.SCOPE_CAPTIONS], [], ["https://www.googleapis.com/auth/youtube"]):
+            class Creds:
+                granted_scopes = granted
+
+                def to_json(self):
+                    return json.dumps({"refresh_token": FAKE_REFRESH, "client_id": "x", "client_secret": "y"})
+
+            class Flow:
+                def run_local_server(self, **k):
+                    return Creds()
+            tmp = Path(tempfile.mkdtemp())
+            try:
+                (tmp / "c.json").write_text("{}")
+                store = MemoryStore()
+                with self.assertRaises(FatalError):
+                    yt.login(tmp / "c.json", store, "default", captions=False, flow_factory=lambda p, scopes: Flow())
+                self.assertIsNone(store.get(yt.credentials_key("default")))
+            finally:
+                shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_stored_login_with_other_scopes_is_not_used(self):
+        store = MemoryStore()
+        store.set(yt.credentials_key("default"), json.dumps({"refresh_token": FAKE_REFRESH, "client_id": "x",
+                                                             "client_secret": "y", "scopes": [yt.SCOPE_UPLOAD, yt.SCOPE_CAPTIONS]}))
+        with self.assertRaises(FatalError):
+            yt.load_credentials(store, "default", captions=False)
+
+    def test_live_switch_edits_only_that_line_and_run_turns_it_off(self):
+        import importlib
+        import pipeline.config as pc
+        tmp = Path(tempfile.mkdtemp())
+        try:
+            (tmp / "config").mkdir()
+            for rel in ("config/publishing.json", "config/settings.json"):
+                shutil.copy(ROOT / rel, tmp / rel)
+            before = {rel: (tmp / rel).read_text(encoding="utf-8") for rel in ("config/publishing.json", "config/settings.json")}
+            run = importlib.import_module("run")
+            old, pc.ROOT = pc.ROOT, tmp
+            try:
+                run._set_live(True)
+                for rel, txt in before.items():
+                    now_txt = (tmp / rel).read_text(encoding="utf-8")
+                    self.assertEqual(now_txt.replace('"live_enabled": true', '"live_enabled": false'), txt)
+                run._set_live(False)
+                for rel, txt in before.items():
+                    self.assertEqual((tmp / rel).read_text(encoding="utf-8"), txt)
+            finally:
+                pc.ROOT = old
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 

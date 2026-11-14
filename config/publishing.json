@@ -4,12 +4,14 @@
   "_live_enabled_note": "MASTER switch. false = koi asal upload mumkin nahi (Phase 6.2 code tayyar, lekin asal upload aap ki alag manzoori ke baad).",
   "platforms_live": {
     "youtube": true,
-    "youtube_shorts": true,
+    "youtube_shorts": false,
     "facebook_reels": false,
     "tiktok": false
   },
-  "_platforms_note": "Phase 6.2: sirf YouTube. Facebook Reels aur TikTok code mein bhi band hain (guard.HARD_BLOCKED) — yahan true karne se bhi nahi khulenge.",
+  "_platforms_note": "Phase 6.2: sirf YouTube (pehla test: sirf regular video; Shorts band). Facebook Reels aur TikTok code mein bhi band hain (guard.HARD_BLOCKED) — yahan true karne se bhi nahi khulenge.",
   "private_only": true,
+  "max_live_uploads": 1,
+  "_max_live_uploads_note": "Kul kitne asal uploads (sab projects mila kar). 1 = sirf pehla PRIVATE test. Aage barhane ke liye aap ki nayi manzoori.",
   "_private_only_note": "true = asal upload sirf 'private'. Unlisted, public aur schedule (publishAt — jo khud public kar deta hai) band.",
   "youtube": {
     "client_secrets_file": "secrets/youtube_client_secret.json",
@@ -18,7 +20,8 @@
     "language": "ur",
     "made_for_kids": false,
     "upload_thumbnail": true,
-    "upload_captions": true,
+    "upload_captions": false,
+    "_captions_note": "false = sirf youtube.upload ijazat (force-ssl nahi maanga jaata). Captions baad mein YouTube Studio mein.",
     "captions_file_16x9": "subtitles/urdu.srt",
     "captions_file_9x16": "subtitles/urdu_vertical.srt"
   }

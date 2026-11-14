@@ -9,7 +9,10 @@ state change and before any adapter call:
 2. `live_enabled` is true in config/publishing.json AND in config/settings.json.
 3. The platform's own switch `platforms_live.<platform>` is true.
 4. With `private_only` (default true) the job must use the safest privacy level.
-5. A separate typed confirmation at upload time: `UPLOAD <job-id>`, shown together
+5. Upload budget: `max_live_uploads` (default 0) counts every job that ever started a
+   REAL upload in any project; a new job beyond the budget is refused (resume of the
+   same job is allowed).
+6. A separate typed confirmation at upload time: `UPLOAD <job-id>`, shown together
    with the final video, title, thumbnail and privacy.
 """
 
@@ -30,7 +33,8 @@ HARD_BLOCKED = {
     "tiktok": "TikTok ka phase (6.4) abhi manzoor nahi hua.",
 }
 
-SAFE_DEFAULTS = {"live_enabled": False, "platforms_live": {p: False for p in PRIVACY}, "private_only": True}
+SAFE_DEFAULTS = {"live_enabled": False, "platforms_live": {p: False for p in PRIVACY}, "private_only": True,
+                 "max_live_uploads": 0}
 
 
 class GuardError(RuntimeError):
@@ -44,6 +48,8 @@ def load_config(path: Path | None = None) -> dict:
         data = json.loads(p.read_text(encoding="utf-8"))
         cfg["live_enabled"] = data.get("live_enabled") is True          # anything but literal true = off
         cfg["private_only"] = data.get("private_only") is not False     # anything but literal false = on
+        mx = data.get("max_live_uploads")
+        cfg["max_live_uploads"] = mx if isinstance(mx, int) and not isinstance(mx, bool) and mx >= 0 else 0
         for k, v in (data.get("platforms_live") or {}).items():
             if k in cfg["platforms_live"]:
                 cfg["platforms_live"][k] = v is True
@@ -72,6 +78,30 @@ def check_live(job, cfg: dict | None = None, *, settings_live: bool | None = Non
         raise GuardError(f"⛔ private_only: sirf '{PRIVACY[job.platform][0]}' allowed — yeh job '{job.privacy}' hai.")
 
 
+def live_uploads_used(projects_dir: Path) -> set[tuple[str, str]]:
+    """(project, job) pairs that ever started a REAL upload (from every project's log)."""
+    used = set()
+    for log in Path(projects_dir).glob("*/publish/log.jsonl"):
+        for line in log.read_text(encoding="utf-8", errors="replace").splitlines():
+            try:
+                r = json.loads(line)
+            except ValueError:
+                continue
+            if r.get("event") == "live_upload_started":
+                used.add((log.parent.parent.name, r.get("job")))
+    return used
+
+
+def check_upload_budget(project_root: Path, job, cfg: dict | None = None) -> None:
+    cfg = cfg if cfg is not None else load_config()
+    used = live_uploads_used(Path(project_root).parent)
+    if (Path(project_root).name, job.id) in used or job.upload.get("live"):
+        return                                           # resume / status check of the SAME upload
+    limit = cfg.get("max_live_uploads", 0)
+    if len(used) >= limit:
+        raise GuardError(f"⛔ Upload ki hadd puri: {len(used)}/{limit} asal upload ho chuke. Naya upload aap ki nayi manzoori se.")
+
+
 def final_preview(project_root: Path, job) -> str:
     """What the user sees right before the separate UPLOAD confirmation."""
     m = job.metadata
@@ -86,7 +116,14 @@ def final_preview(project_root: Path, job) -> str:
         lines.append(f"Title     : {m['title']}")
     if m.get("caption"):
         lines.append(f"Caption   : {m['caption'].splitlines()[0]}")
-    lines.append(f"Schedule  : {job.schedule or 'foran'}")
+    if job.platform.startswith("youtube"):
+        try:
+            ycfg = json.loads(CONFIG.read_text(encoding="utf-8")).get("youtube", {})
+        except (OSError, ValueError):
+            ycfg = {}
+        lines.append(f"Captions  : {'upload honge' if ycfg.get('upload_captions') else 'upload NAHI honge (band)'}")
+        lines.append("Notify    : subscribers ko notification NAHI (notifySubscribers=false)")
+    lines.append(f"Schedule  : {job.schedule or 'koi nahi'}")
     lines.append("══════════════════════════════════════════")
     return "\n".join(lines)
 

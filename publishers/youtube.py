@@ -40,6 +40,7 @@ VIDEOS_URL = "https://www.googleapis.com/youtube/v3/videos"
 THUMB_URL = "https://www.googleapis.com/upload/youtube/v3/thumbnails/set"
 CAPTIONS_URL = "https://www.googleapis.com/upload/youtube/v3/captions"
 REVOKE_URL = "https://oauth2.googleapis.com/revoke"
+CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels"
 
 SCOPE_UPLOAD = "https://www.googleapis.com/auth/youtube.upload"
 SCOPE_CAPTIONS = "https://www.googleapis.com/auth/youtube.force-ssl"
@@ -64,6 +65,21 @@ def credentials_key(account: str) -> str:
     return secret_key("youtube", account, "oauth")
 
 
+def channel_key(account: str) -> str:
+    from .secrets import secret_key
+    return secret_key("youtube", account, "channel")
+
+
+_KEEP = ("refresh_token", "client_id", "client_secret", "token_uri", "scopes")
+
+
+def _minimal(creds_json: str) -> str:
+    """Store only what is needed to refresh — never the short-lived access token.
+    (Also keeps the entry small for Windows Credential Manager.)"""
+    d = json.loads(creds_json)
+    return json.dumps({k: d[k] for k in _KEEP if d.get(k)}, separators=(",", ":"))
+
+
 def login(client_secrets_file: Path, store, account: str, *, captions: bool, flow_factory=None) -> dict:
     """Open Google's official consent page in the browser; save the token in the OS keyring.
 
@@ -77,8 +93,13 @@ def login(client_secrets_file: Path, store, account: str, *, captions: bool, flo
     creds = flow.run_local_server(port=0, open_browser=True, prompt="consent",
                                   authorization_prompt_message="Google ka official login page browser mein khul raha hai…",
                                   success_message="Login mukammal. Yeh tab band kar ke terminal par wapas jaayein.")
-    store.set(credentials_key(account), creds.to_json())
     granted = sorted(getattr(creds, "granted_scopes", None) or getattr(creds, "scopes", None) or [])
+    wanted = sorted(scopes(captions))
+    if granted != wanted:
+        # Google gave fewer/more permissions than asked → do not keep this login at all
+        raise FatalError(f"Google ne mukhtalif ijazatein di: {granted} (maangi thi: {wanted}). Login mehfooz NAHI kiya gaya.")
+    store.set(credentials_key(account), _minimal(creds.to_json()))
+    store.delete(channel_key(account))              # a new login must re-confirm the channel
     return {"account": account, "scopes": granted}
 
 
@@ -87,7 +108,10 @@ def load_credentials(store, account: str, *, captions: bool):
     raw = store.get(credentials_key(account))
     if not raw:
         raise FatalError("YouTube login nahi hua. Pehle: python run.py youtube-login")
-    creds = Credentials.from_authorized_user_info(json.loads(raw), scopes(captions))
+    info = json.loads(raw)
+    if sorted(info.get("scopes") or []) != sorted(scopes(captions)):
+        raise FatalError("Mehfooz login ki ijazatein config se mel nahi khaatin — dobara: python run.py youtube-login")
+    creds = Credentials.from_authorized_user_info(info, scopes(captions))
     if not creds.valid:
         if not creds.refresh_token:
             raise FatalError("YouTube login expire ho gaya. Dobara: python run.py youtube-login")
@@ -96,7 +120,8 @@ def load_credentials(store, account: str, *, captions: bool):
             creds.refresh(Request())
         except Exception as e:
             raise FatalError(f"YouTube token refresh nakaam ({type(e).__name__}) — dobara youtube-login") from None
-        store.set(credentials_key(account), creds.to_json())
+        if creds.refresh_token != info.get("refresh_token"):
+            store.set(credentials_key(account), _minimal(creds.to_json()))
     return creds
 
 
@@ -114,12 +139,25 @@ def logout(store, account: str, http_post=None) -> bool:
         except Exception:
             pass                                    # local removal still happens
     store.delete(credentials_key(account))
+    store.delete(channel_key(account))
     return True
 
 
 def authorized_session(creds):
     from google.auth.transport.requests import AuthorizedSession
     return AuthorizedSession(creds)
+
+
+# ------------------------------------------------------------------ channel check
+def my_channels(http) -> list[dict]:
+    """channels.list?mine=true (1 unit). Read-only; only the id/title/handle are kept."""
+    resp = http.request("GET", CHANNELS_URL, params={"part": "snippet", "mine": "true"}, timeout=60)
+    if resp.status_code == 403 and _reason(resp) in ("insufficientPermissions", "forbidden", "ACCESS_TOKEN_SCOPE_INSUFFICIENT"):
+        raise FatalError("Sirf 'youtube.upload' ijazat se channel ki tasdeeq API nahi karne deti. "
+                         "Hum zyada ijazat NAHI maangte — upload roka gaya. Agla qadam aap se pooch kar.")
+    raise_for(resp, "channel check")
+    return [{"id": c.get("id"), "title": (c.get("snippet") or {}).get("title"),
+             "handle": (c.get("snippet") or {}).get("customUrl")} for c in resp.json().get("items") or []]
 
 
 # ------------------------------------------------------------------ errors
@@ -167,6 +205,14 @@ class YouTubeAdapter(PlatformAdapter):
         self.http = http                  # google-auth AuthorizedSession (tests: a fake)
         self.cfg = cfg
         self.extras: dict = {}
+        self.expected_channel = cfg.get("_expected_channel")     # confirmed by the user (youtube-channel)
+        self.privacy_checks: list[dict] = []
+
+    def _record_privacy(self, job: Job, stage: str, privacy) -> None:
+        from .log import PublishLog
+        self.privacy_checks.append({"stage": stage, "privacy": privacy})
+        PublishLog(self.root).write("privacy_verified" if privacy == "private" else "privacy_ALERT", job.id,
+                                    stage=stage, privacy=privacy)
 
     # ---- safety (second layer, besides guard.py)
     def _privacy_body(self, job: Job) -> dict:
@@ -193,13 +239,24 @@ class YouTubeAdapter(PlatformAdapter):
         }
 
     # ---- resumable upload
+    def check_channel(self) -> dict:
+        """Before ANY upload byte: the logged-in channel must be the one the user confirmed."""
+        if not self.expected_channel:
+            raise FatalError("Channel ki tasdeeq nahi hui. Pehle: python run.py youtube-channel")
+        found = my_channels(self.http)
+        if [c["id"] for c in found] != [self.expected_channel]:
+            raise FatalError("Login wala YouTube channel tasdeeq shuda channel nahi — upload roka gaya.")
+        return found[0]
+
     def start(self, job: Job) -> dict:
+        body = json.dumps(self.video_body(job), ensure_ascii=False).encode("utf-8")   # privacy rules first (no request)
+        self.check_channel()
         size = (self.root / job.files["video"]["path"]).stat().st_size
         resp = self.http.request("POST", UPLOAD_URL, params={"uploadType": "resumable", "part": "snippet,status",
                                          "notifySubscribers": "false"},
                                  headers={"Content-Type": "application/json; charset=UTF-8",
                                           "X-Upload-Content-Length": str(size), "X-Upload-Content-Type": "video/*"},
-                                 data=json.dumps(self.video_body(job), ensure_ascii=False).encode("utf-8"), timeout=60)
+                                 data=body, timeout=60)
         raise_for(resp, "upload session")
         loc = resp.headers.get("Location")
         if not loc or not loc.startswith("https://"):
@@ -244,6 +301,9 @@ class YouTubeAdapter(PlatformAdapter):
         if not vid:
             raise FatalError("Upload ke baad YouTube video ID nahi mili")
         returned = v.get("privacyStatus") or self._fetch_privacy(vid)
+        self._record_privacy(job, "after_upload", returned)
+        if self.expected_channel and v.get("channelId") not in (None, self.expected_channel):
+            raise FatalError(f"⚠️ KHATRA: video {vid} kisi aur channel par gayi! Foran YouTube Studio dekhein.")
         if returned != "private":
             raise FatalError(f"⚠️ KHATRA: YouTube ne video {vid} ki privacy '{returned}' batayi, 'private' nahi! "
                              "Thumbnail/captions roke gaye. Foran YouTube Studio mein check karein.")
@@ -276,7 +336,7 @@ class YouTubeAdapter(PlatformAdapter):
 
     def _captions(self, job: Job, vid: str) -> str:
         f = job.files.get("captions")
-        if not f or not self.cfg.get("upload_captions", True):
+        if not f or not self.cfg.get("upload_captions", False):
             return "skipped"
         p = self.root / f["path"]
         boundary = "urdu-video-" + uuid.uuid4().hex
@@ -305,7 +365,8 @@ class YouTubeAdapter(PlatformAdapter):
         pd = items[0].get("processingDetails", {})
         up, proc = st.get("uploadStatus"), pd.get("processingStatus")
         info = {"uploadStatus": up, "processingStatus": proc, "privacyStatus": st.get("privacyStatus")}
-        if st.get("privacyStatus") not in (None, "private"):
+        self._record_privacy(job, f"processing:{proc or up}", st.get("privacyStatus"))
+        if st.get("privacyStatus") != "private":
             info["alert"] = "privacy 'private' nahi rahi — YouTube Studio mein foran check karein"
             return "failed", info
         if up in ("failed", "rejected", "deleted") or proc in ("failed", "terminated"):
@@ -326,6 +387,7 @@ def _ra(resp):
 def _video_summary(v: dict) -> dict:
     """Keep only non-sensitive fields of the API response."""
     return {"id": v.get("id"), "privacyStatus": (v.get("status") or {}).get("privacyStatus"),
+            "channelId": (v.get("snippet") or {}).get("channelId"),
             "uploadStatus": (v.get("status") or {}).get("uploadStatus")}
 
 
@@ -339,5 +401,10 @@ def get_live_adapter(platform: str, project_root: Path, *, store=None):
     ycfg = json.loads((Path(__file__).resolve().parent.parent / "config" / "publishing.json").read_text(
         encoding="utf-8")).get("youtube", {})
     store = store or secure_store()
-    creds = load_credentials(store, ycfg.get("account", "default"), captions=bool(ycfg.get("upload_captions", True)))
-    return YouTubeAdapter(platform, project_root, authorized_session(creds), ycfg)
+    account = ycfg.get("account", "default")
+    raw = store.get(channel_key(account))
+    if not raw:
+        raise FatalError("Channel ki tasdeeq nahi hui. Pehle: python run.py youtube-channel")
+    creds = load_credentials(store, account, captions=bool(ycfg.get("upload_captions", False)))
+    return YouTubeAdapter(platform, project_root, authorized_session(creds),
+                          dict(ycfg, _expected_channel=json.loads(raw)["id"]))
